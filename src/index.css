@@ -1,0 +1,314 @@
+/* FSTWORKS - Automotive Suspension Workshop Stylesheet (Minimal Dark 3-Color Theme) */
+:root {
+  /* Strict 3-Color Palette Matrix:
+     1. Black & Neutrals (#050507, #0a0a0d, #121216, #27272a, #f4f4f5)
+     2. Primary Accent: Amber Gold (#f59e0b)
+     3. Secondary Accent: Cyan (#06b6d4) / Emerald (#10b981)
+  */
+  --bg-darker: #050507;
+  --bg-dark: #0a0a0d;
+  --bg-card: #121216;
+  --bg-card-hover: #18181f;
+  --border-color: #27272a;
+  --border-glow: #f59e0b;
+  
+  --amber-primary: #f59e0b;
+  --amber-hover: #d97706;
+  --amber-glow: rgba(245, 158, 11, 0.2);
+  
+  --cyan-accent: #06b6d4;
+  --emerald-success: #10b981;
+  --rose-danger: #ef4444;
+  
+  --text-primary: #f4f4f5;
+  --text-secondary: #a1a1aa;
+  --text-muted: #71717a;
+  
+  --font-main: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-tech: 'Rajdhani', sans-serif;
+  
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: var(--bg-darker);
+  color: var(--text-primary);
+  line-height: 1.5;
+  overflow-x: hidden;
+  min-height: 100vh;
+  padding-bottom: 70px; /* Space for bottom mobile nav on HP */
+}
+
+@media (min-width: 769px) {
+  body {
+    padding-bottom: 0;
+  }
+}
+
+/* Typography */
+h1, h2, h3, .tech-font {
+  font-family: var(--font-tech);
+  letter-spacing: 0.5px;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-darker);
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--amber-primary);
+}
+
+/* Compact Clean Panel */
+.glass-panel {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+}
+
+.glass-card {
+  background: #141418;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.glass-card:hover {
+  border-color: var(--amber-primary);
+}
+
+/* Button Styles */
+.btn-primary {
+  background: var(--amber-primary);
+  color: #000000;
+  font-weight: 700;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.btn-primary:hover {
+  background: #fbbf24;
+}
+
+.btn-secondary {
+  background: #18181b;
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-family: var(--font-main);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.btn-secondary:hover {
+  background: #27272a;
+  color: #ffffff;
+}
+
+.btn-cyan {
+  background: #06b6d4;
+  color: #000000;
+  font-weight: 700;
+  padding: 0.65rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: none;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+}
+.btn-cyan:hover {
+  background: #22d3ee;
+}
+
+.btn-sm {
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+}
+
+/* Badge System */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.badge-warning {
+  background: rgba(245, 158, 11, 0.15);
+  color: #fbbf24;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+.badge-info {
+  background: rgba(6, 182, 212, 0.15);
+  color: #38bdf8;
+  border: 1px solid rgba(6, 182, 212, 0.3);
+}
+.badge-success {
+  background: rgba(16, 185, 129, 0.15);
+  color: #34d399;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+/* Form Inputs */
+.form-group {
+  margin-bottom: 1rem;
+}
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+.form-control {
+  width: 100%;
+  padding: 0.65rem 0.85rem;
+  background: #09090b;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+  font-size: 0.9rem;
+  font-family: var(--font-main);
+  transition: border-color 0.2s ease;
+}
+.form-control:focus {
+  outline: none;
+  border-color: var(--amber-primary);
+  background: #121215;
+}
+
+/* Table Responsive Wrapper */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 1rem;
+}
+
+/* Print Invoice Styling */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .printable-area, .printable-area * {
+    visibility: visible;
+  }
+  .printable-area {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    background: white !important;
+    color: black !important;
+    padding: 20px;
+  }
+  .no-print {
+    display: none !important;
+  }
+}
+
+/* ----------------------------------------------------
+   EXPLICIT DISPLAY MODES: PC VIEW vs HP / MOBILE VIEW
+   ---------------------------------------------------- */
+
+/* Desktop PC Layout Rules (> 768px) */
+@media (min-width: 769px) {
+  .view-hp-only {
+    display: none !important;
+  }
+  .view-pc-only {
+    display: block !important;
+  }
+  .view-pc-flex {
+    display: flex !important;
+  }
+  .pc-grid-2col {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+/* Mobile HP Layout Rules (<= 768px) */
+@media (max-width: 768px) {
+  .view-pc-only, .view-pc-flex {
+    display: none !important;
+  }
+  .view-hp-only {
+    display: block !important;
+  }
+  .view-hp-flex {
+    display: flex !important;
+  }
+
+  body {
+    font-size: 14px;
+  }
+
+  .btn-primary, .btn-secondary, .btn-cyan {
+    width: 100%;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+  }
+
+  .glass-panel {
+    padding: 1rem !important;
+    border-radius: 10px !important;
+  }
+
+  h1 {
+    font-size: 1.6rem !important;
+  }
+
+  h2 {
+    font-size: 1.3rem !important;
+  }
+
+  h3 {
+    font-size: 1.1rem !important;
+  }
+
+  .pc-grid-2col {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
