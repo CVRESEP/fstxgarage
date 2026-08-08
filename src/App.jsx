@@ -28,6 +28,7 @@ import {
   saveHolidayConfigToStorage
 } from './utils/storage';
 import { 
+  initTursoSchema,
   fetchQueuesFromTurso, 
   fetchServicesFromTurso,
   fetchSiteConfigFromTurso,
@@ -35,10 +36,12 @@ import {
   fetchProductsFromTurso,
   fetchSymptomsFromTurso,
   fetchHolidaysFromTurso,
+  saveQueueToTurso,
   saveServicesToTurso,
   saveSiteConfigToTurso,
   saveSymptomsToTurso,
-  saveHolidaysToTurso
+  saveHolidaysToTurso,
+  saveTestimonialsToTurso
 } from './utils/turso';
 
 export default function App() {
@@ -58,6 +61,9 @@ export default function App() {
   // Load ALL live data from Turso Edge DB on mount
   useEffect(() => {
     const loadTursoData = async () => {
+      // 0. Ensure schema & tables exist in Turso Cloud Database
+      await initTursoSchema();
+
       // 1. Queues
       const tursoQueues = await fetchQueuesFromTurso();
       if (tursoQueues && Array.isArray(tursoQueues)) {
@@ -69,21 +75,23 @@ export default function App() {
       if (tursoServices && Array.isArray(tursoServices) && tursoServices.length > 0) {
         setServices(tursoServices);
       } else {
-        saveServicesToTurso(services);
+        await saveServicesToTurso(services);
       }
 
       // 3. Site Config (CMS)
       const tursoConfig = await fetchSiteConfigFromTurso();
-      if (tursoConfig) {
+      if (tursoConfig && Object.keys(tursoConfig).length > 0) {
         setSiteConfig(tursoConfig);
       } else {
-        saveSiteConfigToTurso(siteConfig);
+        await saveSiteConfigToTurso(siteConfig);
       }
 
       // 4. Testimonials
       const tursoTestimonials = await fetchTestimonialsFromTurso();
-      if (tursoTestimonials && Array.isArray(tursoTestimonials)) {
+      if (tursoTestimonials && Array.isArray(tursoTestimonials) && tursoTestimonials.length > 0) {
         setTestimonials(tursoTestimonials);
+      } else {
+        await saveTestimonialsToTurso(testimonials);
       }
 
       // 5. Products (Sparepart)
@@ -94,18 +102,18 @@ export default function App() {
 
       // 6. Symptoms
       const tursoSymptoms = await fetchSymptomsFromTurso();
-      if (tursoSymptoms && Array.isArray(tursoSymptoms)) {
+      if (tursoSymptoms && Array.isArray(tursoSymptoms) && tursoSymptoms.length > 0) {
         setSymptoms(tursoSymptoms);
       } else {
-        saveSymptomsToTurso(symptoms);
+        await saveSymptomsToTurso(symptoms);
       }
 
       // 7. Holidays
       const tursoHolidays = await fetchHolidaysFromTurso();
-      if (tursoHolidays) {
+      if (tursoHolidays && Object.keys(tursoHolidays).length > 0) {
         setHolidays(tursoHolidays);
       } else {
-        saveHolidaysToTurso(holidays);
+        await saveHolidaysToTurso(holidays);
       }
     };
     loadTursoData();
@@ -135,8 +143,9 @@ export default function App() {
   useEffect(() => { saveSymptomsToStorage(symptoms); }, [symptoms]);
   useEffect(() => { saveHolidayConfigToStorage(holidays); }, [holidays]);
 
-  const handleQueueCreated = (newQueue) => {
+  const handleQueueCreated = async (newQueue) => {
     setQueues(prev => [newQueue, ...prev]);
+    await saveQueueToTurso(newQueue);
   };
 
   const handleSelectDateFromCalendar = (dateStr, duration) => {
@@ -205,6 +214,7 @@ export default function App() {
                 existingQueues={queues}
                 initialDate={selectedCalendarDate}
                 services={services}
+                symptoms={symptoms}
               />
             )}
 

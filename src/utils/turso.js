@@ -10,10 +10,12 @@ export const getStoredTursoCredentials = () => {
     const saved = localStorage.getItem(TURSO_CONFIG_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
+      const finalUrl = (parsed.url && parsed.url.trim()) || envUrl;
+      const finalToken = (parsed.authToken && parsed.authToken.trim()) || envToken;
       return {
-        url: parsed.url || envUrl,
-        authToken: parsed.authToken || envToken,
-        isEnabled: parsed.isEnabled !== false && Boolean(parsed.url || envUrl)
+        url: finalUrl,
+        authToken: finalToken,
+        isEnabled: Boolean(finalUrl)
       };
     }
   } catch (err) {

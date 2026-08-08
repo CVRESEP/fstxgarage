@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
 import { getStoredServices, getStoredSymptoms, generateBookingId } from '../utils/storage';
+import { saveQueueToTurso } from '../utils/turso';
 import { INDONESIA_CAR_DATABASE, CAR_BRAND_LIST } from '../utils/carData';
 import { Car, User, Phone, FileText, CheckCircle2, ChevronRight, ChevronLeft, Wrench, Sparkles, Printer, Edit3, Clock, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
-export default function BookingModal({ onQueueCreated, onClose, existingQueues }) {
+export default function BookingModal({ onQueueCreated, onClose, existingQueues, initialDate, services: propServices, symptoms: propSymptoms }) {
   const [step, setStep] = useState(1);
   const [createdBooking, setCreatedBooking] = useState(null);
 
-  // Dynamic services & symptoms from storage (managed by Admin)
-  const availableServices = getStoredServices();
-  const availableSymptoms = getStoredSymptoms();
+  // Dynamic services & symptoms from props/storage (managed by Admin & Turso DB)
+  const availableServices = (propServices && propServices.length > 0) ? propServices : getStoredServices();
+  const availableSymptoms = (propSymptoms && propSymptoms.length > 0) ? propSymptoms : getStoredSymptoms();
 
   // Form State
   const [customerName, setCustomerName] = useState('');
@@ -124,6 +125,7 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
       statusHistory: initialHistory
     };
 
+    saveQueueToTurso(newBookingData);
     onQueueCreated(newBookingData);
     setCreatedBooking(newBookingData);
     setStep(3); // Success Ticket Screen

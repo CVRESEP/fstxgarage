@@ -11,6 +11,13 @@ import {
 import { 
   deleteQueueFromTurso, 
   deleteProductFromTurso,
+  saveQueueToTurso,
+  saveServicesToTurso,
+  saveProductToTurso,
+  saveSiteConfigToTurso,
+  saveSymptomsToTurso,
+  saveHolidaysToTurso,
+  saveTestimonialsToTurso,
   getStoredTursoCredentials,
   saveTursoCredentials,
   resetTursoClient,
@@ -95,18 +102,21 @@ export default function AdminDashboard({
     const next = typeof val === 'function' ? val(services) : val;
     if (propSetServices) propSetServices(next);
     saveServicesToStorage(next);
+    saveServicesToTurso(next);
   };
   const symptoms = propSymptoms || getStoredSymptoms();
   const setSymptoms = (val) => {
     const next = typeof val === 'function' ? val(symptoms) : val;
     if (propSetSymptoms) propSetSymptoms(next);
     saveSymptomsToStorage(next);
+    saveSymptomsToTurso(next);
   };
   const products = propProducts || getStoredProducts();
   const setProducts = (val) => {
     const next = typeof val === 'function' ? val(products) : val;
     if (propSetProducts) propSetProducts(next);
     saveProductsToStorage(next);
+    (next || []).forEach(p => saveProductToTurso(p));
   };
 
   // Modal states for adding/editing services and products
@@ -222,15 +232,17 @@ export default function AdminDashboard({
   };
 
   // CMS Handlers
-  const handleSaveCMS = (e) => {
+  const handleSaveCMS = async (e) => {
     e.preventDefault();
     if (setSiteConfig) {
       setSiteConfig(cmsState);
-      alert('✅ Konten & Teks Halaman Customer Berhasil Diperbarui!');
     }
+    saveSiteConfigToStorage(cmsState);
+    await saveSiteConfigToTurso(cmsState);
+    alert('✅ Konten & Teks Halaman Customer Berhasil Diperbarui & Disimpan ke Database Turso!');
   };
 
-  const handleAddTestimonial = (e) => {
+  const handleAddTestimonial = async (e) => {
     e.preventDefault();
     if (!newTestiName || !newTestiComment) return;
     const item = {
@@ -239,19 +251,25 @@ export default function AdminDashboard({
       rating: Number(newTestiRating),
       comment: newTestiComment
     };
+    const updated = [item, ...(testimonials || [])];
     if (setTestimonials) {
-      setTestimonials(prev => [item, ...prev]);
+      setTestimonials(updated);
     }
+    saveTestimonialsToStorage(updated);
+    await saveTestimonialsToTurso(updated);
     setNewTestiName('');
     setNewTestiComment('');
     setNewTestiRating(5);
   };
 
-  const handleDeleteTestimonial = (id) => {
+  const handleDeleteTestimonial = async (id) => {
     if (confirm('Yakin ingin menghapus ulasan ini?')) {
+      const updated = (testimonials || []).filter(t => t.id !== id);
       if (setTestimonials) {
-        setTestimonials(prev => prev.filter(t => t.id !== id));
+        setTestimonials(updated);
       }
+      saveTestimonialsToStorage(updated);
+      await saveTestimonialsToTurso(updated);
     }
   };
 
@@ -434,19 +452,24 @@ export default function AdminDashboard({
       timestamp: timestamp
     };
 
+    let updatedQueueObj = null;
     const updated = queues.map(q => {
       if (q.id === queueId) {
         const existingHistory = q.statusHistory || [];
-        return { 
+        updatedQueueObj = { 
           ...q, 
           status: newStatus, 
           updatedAt: new Date().toISOString(),
           statusHistory: [updatedHistoryItem, ...existingHistory]
         };
+        return updatedQueueObj;
       }
       return q;
     });
     setQueues(updated);
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+    }
   };
 
   // Submit Custom Status Text with AUTOMATIC HISTORY LOGGING
@@ -461,21 +484,26 @@ export default function AdminDashboard({
       timestamp: timestamp
     };
 
+    let updatedQueueObj = null;
     const updated = queues.map(q => {
       if (q.id === selectedCustomStatusQueue.id) {
         const existingHistory = q.statusHistory || [];
-        return {
+        updatedQueueObj = {
           ...q,
           status: 'CUSTOM',
           customStatusText: customStatusInput.trim(),
           updatedAt: new Date().toISOString(),
           statusHistory: [updatedHistoryItem, ...existingHistory]
         };
+        return updatedQueueObj;
       }
       return q;
     });
 
     setQueues(updated);
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+    }
     setSelectedCustomStatusQueue(null);
   };
 
@@ -493,17 +521,21 @@ export default function AdminDashboard({
     const existingParts = selectedPartQueue.parts || [];
     const updatedParts = [...existingParts, newPart];
 
+    let updatedQueueObj = null;
     const updatedQueues = queues.map(q => {
       if (q.id === selectedPartQueue.id) {
-        const updatedObj = { ...q, parts: updatedParts };
-        updatedObj.estimatedCost = calculateQueueTotalCost(updatedObj);
-        return updatedObj;
+        updatedQueueObj = { ...q, parts: updatedParts };
+        updatedQueueObj.estimatedCost = calculateQueueTotalCost(updatedQueueObj);
+        return updatedQueueObj;
       }
       return q;
     });
 
     setQueues(updatedQueues);
-    setSelectedPartQueue(updatedQueues.find(q => q.id === selectedPartQueue.id));
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+      setSelectedPartQueue(updatedQueueObj);
+    }
     setPartNameInput('');
     setPartPriceInput('');
   };
@@ -513,17 +545,21 @@ export default function AdminDashboard({
 
     const updatedParts = (selectedPartQueue.parts || []).filter(p => p.id !== partId);
 
+    let updatedQueueObj = null;
     const updatedQueues = queues.map(q => {
       if (q.id === selectedPartQueue.id) {
-        const updatedObj = { ...q, parts: updatedParts };
-        updatedObj.estimatedCost = calculateQueueTotalCost(updatedObj);
-        return updatedObj;
+        updatedQueueObj = { ...q, parts: updatedParts };
+        updatedQueueObj.estimatedCost = calculateQueueTotalCost(updatedQueueObj);
+        return updatedQueueObj;
       }
       return q;
     });
 
     setQueues(updatedQueues);
-    setSelectedPartQueue(updatedQueues.find(q => q.id === selectedPartQueue.id));
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+      setSelectedPartQueue(updatedQueueObj);
+    }
   };
 
   // Additional Service Mid-Progress Handlers
@@ -556,44 +592,52 @@ export default function AdminDashboard({
       timestamp: timestamp
     };
 
+    let updatedQueueObj = null;
     const updatedQueues = queues.map(q => {
       if (q.id === selectedAddServiceQueue.id) {
         const existingHistory = q.statusHistory || [];
-        const updatedObj = { 
+        updatedQueueObj = { 
           ...q, 
           additionalServices: updatedAddSrvs,
           bookingDate: addSrvOption === 'HARI_LAIN' ? addSrvNewDate : q.bookingDate,
           statusHistory: [updatedHistoryItem, ...existingHistory]
         };
-        updatedObj.estimatedCost = calculateQueueTotalCost(updatedObj);
-        return updatedObj;
+        updatedQueueObj.estimatedCost = calculateQueueTotalCost(updatedQueueObj);
+        return updatedQueueObj;
       }
       return q;
     });
 
     setQueues(updatedQueues);
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+    }
     setSelectedAddServiceQueue(null);
     resetAddServiceForm();
   };
 
   const handleDeleteAdditionalService = (queueId, serviceId) => {
+    let updatedQueueObj = null;
     const updatedQueues = queues.map(q => {
       if (q.id === queueId) {
         const updatedAddSrvs = (q.additionalServices || []).filter(s => s.id !== serviceId);
-        const updatedObj = { ...q, additionalServices: updatedAddSrvs };
-        updatedObj.estimatedCost = calculateQueueTotalCost(updatedObj);
-        return updatedObj;
+        updatedQueueObj = { ...q, additionalServices: updatedAddSrvs };
+        updatedQueueObj.estimatedCost = calculateQueueTotalCost(updatedQueueObj);
+        return updatedQueueObj;
       }
       return q;
     });
     setQueues(updatedQueues);
+    if (updatedQueueObj) {
+      saveQueueToTurso(updatedQueueObj);
+    }
     if (selectedRowDetail && selectedRowDetail.id === queueId) {
       setSelectedRowDetail(updatedQueues.find(q => q.id === queueId));
     }
   };
 
   // Service Management Handlers
-  const handleSaveService = (e) => {
+  const handleSaveService = async (e) => {
     e.preventDefault();
     if (!srvName.trim()) return;
 
@@ -623,34 +667,38 @@ export default function AdminDashboard({
 
     setServices(updatedServices);
     saveServicesToStorage(updatedServices);
+    await saveServicesToTurso(updatedServices);
     setShowAddServiceModal(false);
     setEditingService(null);
     setSrvName(''); setSrvPrice(250000); setSrvDesc(''); setSrvStage(1);
   };
 
-  const handleDeleteService = (serviceId) => {
+  const handleDeleteService = async (serviceId) => {
     if (window.confirm('Apakah Anda yakin ingin menghapus layanan ini?')) {
       const updated = services.filter(s => s.id !== serviceId);
       setServices(updated);
       saveServicesToStorage(updated);
+      await saveServicesToTurso(updated);
     }
   };
 
   // Symptom Management Handlers
-  const handleAddSymptom = (e) => {
+  const handleAddSymptom = async (e) => {
     e.preventDefault();
     if (!newSymptomText.trim()) return;
 
     const updated = [...symptoms, newSymptomText.trim()];
     setSymptoms(updated);
     saveSymptomsToStorage(updated);
+    await saveSymptomsToTurso(updated);
     setNewSymptomText('');
   };
 
-  const handleDeleteSymptom = (index) => {
+  const handleDeleteSymptom = async (index) => {
     const updated = symptoms.filter((_, idx) => idx !== index);
     setSymptoms(updated);
     saveSymptomsToStorage(updated);
+    await saveSymptomsToTurso(updated);
   };
 
   const handleDeleteQueue = (queueId) => {
@@ -950,6 +998,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
     });
 
     setQueues(updated);
+    saveQueueToTurso(updatedQueueObj);
     setSelectedACCQueue(null);
 
     // Automatically send WhatsApp message / open WhatsApp click-to-chat
@@ -999,6 +1048,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
     };
 
     setQueues([newWalkin, ...queues]);
+    saveQueueToTurso(newWalkin);
     setShowAddWalkin(false);
     setWName(''); setWPlate(''); setWCar('');
     speakQueueCall(newWalkin);
