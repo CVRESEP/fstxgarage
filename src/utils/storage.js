@@ -230,11 +230,37 @@ export const parseDateToTimestamp = (dateVal) => {
   return isNaN(parsed) ? null : parsed;
 };
 
-// Calculate actual duration in days dynamically between entry date (startDate/bookingDate) and exit date (endDate/SELESAI statusHistory)
+// Helper to extract accurate start date when work actually began (PENGERJAAN status or startDate)
+export const getQueueStartDate = (queue) => {
+  if (!queue) return '-';
+  // 1. Check statusHistory for the exact PENGERJAAN timestamp
+  if (queue.statusHistory && Array.isArray(queue.statusHistory)) {
+    const pengerjaanLog = queue.statusHistory.find(h => h.status === 'PENGERJAAN');
+    if (pengerjaanLog && pengerjaanLog.timestamp) {
+      return pengerjaanLog.timestamp.split(',')[0].trim();
+    }
+  }
+  // 2. Check startDate
+  if (queue.startDate) return queue.startDate;
+  // 3. Fallback to bookingDate or createdAt
+  return queue.bookingDate || queue.createdAt || '-';
+};
+
+// Calculate actual duration in days dynamically between entry date (PENGERJAAN / startDate) and exit date (SELESAI statusHistory / endDate)
 export const calculateActualWorkDuration = (queue) => {
   if (!queue) return '1 Hari';
 
-  const startVal = queue.startDate || queue.bookingDate || queue.createdAt;
+  // Extract start date when work actually began (PENGERJAAN)
+  let startVal = queue.startDate;
+  if (queue.statusHistory && Array.isArray(queue.statusHistory)) {
+    const pengerjaanLog = queue.statusHistory.find(h => h.status === 'PENGERJAAN');
+    if (pengerjaanLog && pengerjaanLog.timestamp) {
+      startVal = pengerjaanLog.timestamp;
+    }
+  }
+  if (!startVal) {
+    startVal = queue.startDate || queue.bookingDate || queue.createdAt;
+  }
   
   let endVal = queue.endDate;
   if (queue.statusHistory && Array.isArray(queue.statusHistory)) {
@@ -254,7 +280,7 @@ export const calculateActualWorkDuration = (queue) => {
     const diffMs = endTs - startTs;
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
     
-    // If entered & finished on same day (e.g. diff = 0), count as 1 Hari
+    // If entered & finished on same day (e.g. diff <= 0), count as 1 Hari
     if (diffDays <= 0) {
       return '1 Hari';
     }

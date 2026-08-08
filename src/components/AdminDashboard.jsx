@@ -8,6 +8,7 @@ import {
   getStoredSiteConfig,
   calculateWorkdayEndDate,
   calculateActualWorkDuration,
+  getQueueStartDate,
   parseDateToTimestamp
 } from '../utils/storage';
 import { 
@@ -491,8 +492,25 @@ export default function AdminDashboard({
         const existingHistory = q.statusHistory || [];
         let actualDurationDays = q.durationDays || 1;
 
+        // When work actually begins (PENGERJAAN), set startDate to today
+        let effectiveStartDate = q.startDate;
+        if (newStatus === 'PENGERJAAN') {
+          effectiveStartDate = todayDateStr;
+        }
+
         if (newStatus === 'SELESAI') {
-          const startVal = q.startDate || q.bookingDate || todayDateStr;
+          // Check if there was an earlier PENGERJAAN log
+          let startVal = q.startDate;
+          if (existingHistory && Array.isArray(existingHistory)) {
+            const pengerjaanLog = existingHistory.find(h => h.status === 'PENGERJAAN');
+            if (pengerjaanLog && pengerjaanLog.timestamp) {
+              startVal = pengerjaanLog.timestamp;
+            }
+          }
+          if (!startVal) {
+            startVal = q.startDate || q.bookingDate || todayDateStr;
+          }
+
           const startTs = parseDateToTimestamp(startVal);
           const endTs = parseDateToTimestamp(todayDateStr);
           if (startTs && endTs) {
@@ -505,6 +523,7 @@ export default function AdminDashboard({
           ...q, 
           status: newStatus, 
           updatedAt: nowIso,
+          startDate: effectiveStartDate || q.startDate,
           endDate: newStatus === 'SELESAI' ? todayDateStr : (q.endDate || todayDateStr),
           durationDays: newStatus === 'SELESAI' ? actualDurationDays : (q.durationDays || 1),
           completedAt: newStatus === 'SELESAI' ? nowIso : (q.completedAt || null),
@@ -886,7 +905,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
     const siteCfg = getStoredSiteConfig();
 
     const rowsHtml = list.map((q, idx) => {
-      const startDate = q.startDate || q.bookingDate || '-';
+      const startDate = getQueueStartDate(q);
       const endDate = getQueueCompletedDate(q);
       const duration = calculateActualWorkDuration(q);
       const costStr = formatCurrency(calculateQueueTotalCost(q));
@@ -1680,7 +1699,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                   </tr>
                 ) : (
                   filterListBySearch(completedQueues).map((q, idx) => {
-                    const startDateStr = q.startDate || q.bookingDate || '-';
+                    const startDateStr = getQueueStartDate(q);
                     const endDateStr = getQueueCompletedDate(q);
                     const durationText = calculateActualWorkDuration(q);
 
@@ -1771,7 +1790,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {filterListBySearch(completedQueues).map((q) => {
-                  const startDateStr = q.startDate || q.bookingDate || '-';
+                  const startDateStr = getQueueStartDate(q);
                   const endDateStr = getQueueCompletedDate(q);
                   const durationText = calculateActualWorkDuration(q);
 
@@ -2855,8 +2874,8 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '6px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Masuk</label>
-                <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>{selectedRowDetail.startDate || selectedRowDetail.bookingDate || '-'}</div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Masuk / Mulai</label>
+                <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>{getQueueStartDate(selectedRowDetail)}</div>
               </div>
               <div>
                 <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Keluar</label>

@@ -18,17 +18,22 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, siteC
 
   if (!isOpen) return null;
 
-  const validPins = [siteConfig?.adminPin, '1234', 'fst123', '']
-    .map(p => (p || '').toString().trim());
+  const adminPassword = (siteConfig?.adminPin || siteConfig?.adminPassword || '1234').toString().trim();
 
   const handleAttemptLogin = (e) => {
     if (e) e.preventDefault();
     const entered = pin.trim();
-    if (validPins.includes(entered) || entered === '') {
+    if (!entered) {
+      setErrorMsg('Silakan masukkan password / PIN admin.');
+      if (inputRef.current) inputRef.current.focus();
+      return;
+    }
+
+    if (entered === adminPassword) {
       setErrorMsg('');
       onLoginSuccess();
     } else {
-      setErrorMsg(`PIN salah. Gunakan PIN default 1234 atau fst123`);
+      setErrorMsg('Password / PIN admin yang Anda masukkan tidak sesuai.');
       if (inputRef.current) inputRef.current.select();
     }
   };
@@ -135,9 +140,9 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, siteC
             </div>
           )}
 
-          <div style={{ marginBottom: '1.25rem' }}>
+          <div style={{ marginBottom: '1.5rem' }}>
             <label style={{ display: 'block', fontSize: '0.78rem', fontWeight: 600, color: '#cbd5e1', marginBottom: '0.5rem' }}>
-              Masukkan PIN Akses Admin:
+              Masukkan Password / PIN Admin:
             </label>
             <div style={{ position: 'relative' }}>
               <input
@@ -148,13 +153,12 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, siteC
                   setPin(e.target.value);
                   if (errorMsg) setErrorMsg('');
                 }}
-                placeholder="Default: 1234 atau fst123"
+                placeholder="Masukkan Password / PIN..."
                 style={{
                   width: '100%',
                   padding: '0.85rem 1rem 0.85rem 2.6rem',
-                  fontSize: '1.1rem',
-                  letterSpacing: '0.15em',
-                  textAlign: 'center',
+                  fontSize: '1rem',
+                  letterSpacing: '0.1em',
                   background: '#09090b',
                   border: '1px solid rgba(255, 255, 255, 0.15)',
                   borderRadius: '10px',
@@ -170,24 +174,6 @@ export default function AdminLoginModal({ isOpen, onClose, onLoginSuccess, siteC
                 color="#f59e0b" 
                 style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)' }} 
               />
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', fontSize: '0.75rem', color: '#71717a' }}>
-              <span>💡 PIN default: <strong style={{ color: '#fbbf24' }}>1234</strong></span>
-              <button
-                type="button"
-                onClick={onLoginSuccess}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#f59e0b',
-                  cursor: 'pointer',
-                  fontSize: '0.75rem',
-                  textDecoration: 'underline',
-                  padding: 0
-                }}
-              >
-                ⚡ Masuk Langsung
-              </button>
             </div>
           </div>
 
