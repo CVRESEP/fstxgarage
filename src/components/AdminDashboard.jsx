@@ -380,6 +380,35 @@ export default function AdminDashboard({
     );
   };
 
+  // Service ID to Name resolution helper
+  const getServiceName = (serviceId) => {
+    if (!serviceId) return '';
+    const srv = (services || []).find(s => s.id === serviceId);
+    return srv ? srv.name : serviceId;
+  };
+
+  const getServiceNamesList = (serviceIds) => {
+    if (!serviceIds || !Array.isArray(serviceIds) || serviceIds.length === 0) return '-';
+    return serviceIds.map(sid => getServiceName(sid)).join(', ');
+  };
+
+  // Helper to extract accurate exit/completion date
+  const getQueueCompletedDate = (q) => {
+    if (!q) return '-';
+    // 1. Check statusHistory for the exact SELESAI entry timestamp
+    if (q.statusHistory && Array.isArray(q.statusHistory)) {
+      const selesaiLog = q.statusHistory.find(h => h.status === 'SELESAI');
+      if (selesaiLog && selesaiLog.timestamp) {
+        return selesaiLog.timestamp;
+      }
+    }
+    // 2. Check endDate or completedAt or updatedAt
+    if (q.endDate) return q.endDate;
+    if (q.completedAt) return new Date(q.completedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    if (q.updatedAt) return new Date(q.updatedAt).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: 'numeric' });
+    return q.bookingDate || '-';
+  };
+
   // Helper to format date-time string
   const getCurrentFormattedDateTime = () => {
     const now = new Date();
@@ -433,7 +462,7 @@ export default function AdminDashboard({
     return maxDuration;
   };
 
-  // Update status handler with AUTOMATIC HISTORY LOGGING
+  // Update status handler with AUTOMATIC HISTORY LOGGING & REAL EXIT DATE TRACKING
   const handleUpdateStatus = (queueId, newStatus) => {
     const queueToUpdate = queues.find(q => q.id === queueId);
     if (newStatus === 'CUSTOM') {
@@ -445,10 +474,12 @@ export default function AdminDashboard({
     const statusObj = STATUS_MAP[newStatus];
     const statusLabel = statusObj ? statusObj.label : newStatus;
     const timestamp = getCurrentFormattedDateTime();
+    const todayDateStr = new Date().toISOString().slice(0, 10);
+    const nowIso = new Date().toISOString();
 
     const updatedHistoryItem = {
       status: newStatus,
-      label: statusLabel,
+      label: newStatus === 'SELESAI' ? 'Selesai / Siap Diambil & Kendaraan Keluar Workshop' : statusLabel,
       timestamp: timestamp
     };
 
@@ -459,7 +490,9 @@ export default function AdminDashboard({
         updatedQueueObj = { 
           ...q, 
           status: newStatus, 
-          updatedAt: new Date().toISOString(),
+          updatedAt: nowIso,
+          endDate: newStatus === 'SELESAI' ? todayDateStr : (q.endDate || todayDateStr),
+          completedAt: newStatus === 'SELESAI' ? nowIso : (q.completedAt || null),
           statusHistory: [updatedHistoryItem, ...existingHistory]
         };
         return updatedQueueObj;
@@ -839,15 +872,12 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
 
     const rowsHtml = list.map((q, idx) => {
       const startDate = q.startDate || q.bookingDate || '-';
-      const endDate = q.endDate || q.updatedAt?.slice(0, 10) || q.bookingDate || '-';
+      const endDate = getQueueCompletedDate(q);
       const duration = `${q.durationDays || 1} Hari`;
       const costStr = formatCurrency(calculateQueueTotalCost(q));
 
       const servicesText = q.services && q.services.length > 0
-        ? q.services.map(sid => {
-            const sObj = services.find(s => s.id === sid);
-            return sObj ? sObj.name : sid;
-          }).join(', ')
+        ? q.services.map(sid => getServiceName(sid)).join(', ')
         : '-';
 
       const partsText = q.parts && q.parts.length > 0
@@ -1325,8 +1355,8 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                             "{q.customManualText}"
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>
-                            {q.services && q.services.join(', ')}
+                          <span style={{ fontSize: '0.85rem', color: '#cbd5e1', fontWeight: 600 }}>
+                            {getServiceNamesList(q.services)}
                           </span>
                         )}
                       </td>
@@ -1406,7 +1436,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                           <div style={{ fontStyle: 'italic', color: '#fff', marginTop: '2px' }}>"{q.customManualText}"</div>
                         </div>
                       ) : (
-                        <div><strong>Layanan:</strong> {q.services && q.services.join(', ')}</div>
+                        <div><strong>Layanan:</strong> <span style={{ color: '#fff' }}>{getServiceNamesList(q.services)}</span></div>
                       )}
                       <div style={{ marginTop: '4px', color: '#10b981', fontWeight: 700, fontSize: '0.875rem' }}>
                         Est: {formatCurrency(q.estimatedCost)}
@@ -1636,7 +1666,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                 ) : (
                   filterListBySearch(completedQueues).map((q, idx) => {
                     const startDateStr = q.startDate || q.bookingDate || '-';
-                    const endDateStr = q.endDate || q.updatedAt?.slice(0, 10) || q.bookingDate || '-';
+                    const endDateStr = getQueueCompletedDate(q);
                     const durationText = `${q.durationDays || 1} Hari`;
 
                     return (
@@ -1663,10 +1693,10 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                             </div>
                           )}
                           
-                          {/* List Services */}
-                          {q.services && (
-                            <div style={{ fontSize: '0.75rem', color: '#cbd5e1', marginBottom: '4px' }}>
-                              🛠️ {q.services.join(', ')}
+                          {/* List Services with Friendly Names */}
+                          {q.services && q.services.length > 0 && (
+                            <div style={{ fontSize: '0.78rem', color: '#f1f5f9', marginBottom: '4px', fontWeight: 600 }}>
+                              🛠️ {q.services.map(sid => getServiceName(sid)).join(', ')}
                             </div>
                           )}
 
@@ -1727,7 +1757,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
                 {filterListBySearch(completedQueues).map((q) => {
                   const startDateStr = q.startDate || q.bookingDate || '-';
-                  const endDateStr = q.endDate || q.updatedAt?.slice(0, 10) || q.bookingDate || '-';
+                  const endDateStr = getQueueCompletedDate(q);
                   const durationText = `${q.durationDays || 1} Hari`;
 
                   return (
@@ -1747,6 +1777,29 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                           </span>
                         </div>
                         <span className="badge badge-success" style={{ fontSize: '0.7rem' }}>SELESAI</span>
+                      </div>
+
+                      {/* List Services & Parts on Mobile */}
+                      <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.6rem 0.75rem', borderRadius: '6px', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
+                        {q.services && q.services.length > 0 && (
+                          <div style={{ marginBottom: '4px' }}>
+                            🛠️ <strong style={{ color: '#fff' }}>{q.services.map(sid => getServiceName(sid)).join(', ')}</strong>
+                          </div>
+                        )}
+                        {q.customManualText && (
+                          <div style={{ color: '#38bdf8', fontSize: '0.72rem', fontStyle: 'italic', marginBottom: '4px' }}>
+                            📝 "{q.customManualText}"
+                          </div>
+                        )}
+                        {q.parts && q.parts.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', marginTop: '4px' }}>
+                            {q.parts.map(p => (
+                              <span key={p.id} style={{ fontSize: '0.7rem', color: '#a7f3d0' }}>
+                                📦 {p.name} ({formatCurrency(p.price)})
+                              </span>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ background: 'rgba(255, 255, 255, 0.03)', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.78rem', color: '#cbd5e1', marginBottom: '0.5rem' }}>
@@ -2783,6 +2836,46 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                 <div style={{ color: '#fbbf24', fontWeight: 700 }}>{selectedRowDetail.licensePlate}</div>
                 <div style={{ fontSize: '0.85rem', color: '#cbd5e1' }}>{selectedRowDetail.carModel}</div>
               </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Masuk / Booking</label>
+                <div style={{ color: '#fff', fontWeight: 600 }}>{selectedRowDetail.startDate || selectedRowDetail.bookingDate || '-'}</div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Selesai / Keluar</label>
+                <div style={{ color: '#34d399', fontWeight: 700 }}>{getQueueCompletedDate(selectedRowDetail)}</div>
+              </div>
+            </div>
+
+            {/* PAKET LAYANAN UTAMA */}
+            <div style={{ marginBottom: '1.5rem' }}>
+              <h4 style={{ fontSize: '0.9rem', color: '#38bdf8', marginBottom: '0.5rem', borderBottom: '1px solid rgba(56,189,248,0.3)', paddingBottom: '0.25rem' }}>
+                Paket Layanan Utama
+              </h4>
+              {(!selectedRowDetail.services || selectedRowDetail.services.length === 0) ? (
+                <div style={{ fontSize: '0.85rem', color: '#64748b', fontStyle: 'italic' }}>Tidak ada paket layanan utama.</div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                  {selectedRowDetail.services.map((sid, sIdx) => {
+                    const sObj = (services || []).find(s => s.id === sid);
+                    const sName = sObj ? sObj.name : sid;
+                    const sPrice = sObj ? sObj.price : 0;
+                    return (
+                      <div key={sIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', background: 'rgba(56,189,248,0.05)', padding: '0.5rem 0.75rem', borderRadius: '4px' }}>
+                        <span style={{ color: '#fff' }}>🛠️ {sName}</span>
+                        <span style={{ color: '#38bdf8', fontWeight: 600 }}>{sPrice === 0 ? 'FREE' : formatCurrency(sPrice)}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+              {selectedRowDetail.customManualText && (
+                <div style={{ marginTop: '0.5rem', background: 'rgba(6, 182, 212, 0.1)', border: '1px dashed #06b6d4', padding: '0.5rem 0.75rem', borderRadius: '6px', fontSize: '0.8rem', color: '#fff' }}>
+                  <span style={{ color: '#38bdf8', fontWeight: 700 }}>📝 Isian Manual:</span> "{selectedRowDetail.customManualText}"
+                </div>
+              )}
             </div>
 
             <div style={{ marginBottom: '1.5rem' }}>
