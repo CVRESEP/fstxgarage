@@ -63,43 +63,86 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
         zIndex: 100,
         background: '#0a0a0d',
         borderBottom: '1px solid #27272a',
-        padding: '0.6rem 1rem'
+        padding: '0.35rem 1rem 0.4rem'
       }}>
         <div style={{
           maxWidth: '1280px',
           margin: '0 auto',
           display: 'flex',
+          flexDirection: 'column',
           alignItems: 'center',
-          justify: 'space-between'
+          gap: '0.35rem'
         }}>
-          {/* Brand Logo & Name */}
-          <div 
-            onClick={() => handleNavClick(activeRole === 'admin' ? 'admin' : 'home')}
-            style={{ display: 'flex', alignItems: 'center', gap: '0.85rem', cursor: 'pointer' }}
-          >
-            <img 
-              src="/fst.png" 
-              alt="FSTWORKS" 
-              style={{ height: '65px', width: 'auto', objectFit: 'contain' }}
-            />
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                <span className="badge badge-warning" style={{ fontSize: '0.65rem' }}>WORKSHOP</span>
-              </div>
-              <span style={{ fontSize: '0.72rem', color: '#a1a1aa', display: 'block', marginTop: '2px', fontWeight: 600, letterSpacing: '0.5px' }}>
-                UNDERCARRIAGE SPECIALIST
-              </span>
+          {/* ROW 1: BRAND LOGO (FIT ROW HEIGHT WITH MAXIMIZED IMAGE) */}
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            justify: 'space-between',
+            width: '100%',
+            height: '90px',
+            position: 'relative',
+            overflow: 'visible'
+          }}>
+            <div 
+              onClick={() => handleNavClick(activeRole === 'admin' ? 'admin' : 'home')}
+              style={{ 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                cursor: 'pointer',
+                margin: '0 auto',
+                height: '100%'
+              }}
+            >
+              <img 
+                src="/fst.png" 
+                alt="FSTWORKS" 
+                style={{ 
+                  height: '135px', 
+                  width: 'auto', 
+                  objectFit: 'contain',
+                  marginTop: '-5px',
+                  marginBottom: '-5px',
+                  filter: 'drop-shadow(0 0 15px rgba(245, 158, 11, 0.35))'
+                }}
+              />
+            </div>
+
+            {/* Mobile Toggle Button on top right */}
+            <div className="view-hp-only" style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                style={{
+                  background: '#18181b',
+                  border: '1px solid #27272a',
+                  color: '#f4f4f5',
+                  padding: '0.45rem',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+              </button>
             </div>
           </div>
 
-          {/* Desktop Navigation Links (PC View) */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }} className="view-pc-flex">
+          {/* ROW 2: MENU BAR DIRECTLY BELOW LOGO (PC View) */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center', 
+            gap: '0.65rem',
+            width: '100%',
+            paddingTop: '0.6rem',
+            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            flexWrap: 'wrap'
+          }} className="view-pc-flex">
             {activeRole === 'customer' ? (
               <>
                 <button
                   className={`btn-secondary btn-sm ${activeTab === 'home' ? 'active-nav' : ''}`}
                   onClick={() => handleNavClick('home')}
-                  style={activeTab === 'home' ? { background: '#f59e0b', color: '#000000', borderColor: '#f59e0b' } : {}}
+                  style={activeTab === 'home' ? { background: '#f59e0b', color: '#000000', borderColor: '#f59e0b', fontWeight: 700 } : {}}
                 >
                   <Wrench size={15} /> Beranda & Jasa
                 </button>
@@ -107,7 +150,7 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 <button
                   className={`btn-secondary btn-sm ${activeTab === 'calendar' ? 'active-nav' : ''}`}
                   onClick={() => handleNavClick('calendar')}
-                  style={activeTab === 'calendar' ? { background: '#f59e0b', color: '#000000', borderColor: '#f59e0b' } : {}}
+                  style={activeTab === 'calendar' ? { background: '#f59e0b', color: '#000000', borderColor: '#f59e0b', fontWeight: 700 } : {}}
                 >
                   <CalendarIcon size={15} /> Agenda Workshop
                 </button>
@@ -115,7 +158,7 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 <button
                   className={`btn-secondary btn-sm ${activeTab === 'tracker' ? 'active-nav' : ''}`}
                   onClick={() => handleNavClick('tracker')}
-                  style={activeTab === 'tracker' ? { background: '#06b6d4', color: '#000000', borderColor: '#06b6d4' } : {}}
+                  style={activeTab === 'tracker' ? { background: '#06b6d4', color: '#000000', borderColor: '#06b6d4', fontWeight: 700 } : {}}
                 >
                   <Search size={15} /> Cek Status Kendaraan
                 </button>
@@ -123,7 +166,7 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 <button
                   className={`btn-secondary btn-sm ${activeTab === 'estimation' ? 'active-nav' : ''}`}
                   onClick={() => handleNavClick('estimation')}
-                  style={activeTab === 'estimation' ? { background: '#27272a', color: '#f4f4f5' } : {}}
+                  style={activeTab === 'estimation' ? { background: '#27272a', color: '#f4f4f5', fontWeight: 700 } : {}}
                 >
                   <Calculator size={15} /> Perkiraan Biaya
                 </button>
@@ -131,36 +174,20 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 <button
                   className={`btn-secondary btn-sm ${activeTab === 'booking' ? 'active-nav' : ''}`}
                   onClick={() => handleNavClick('booking')}
-                  style={activeTab === 'booking' ? { background: '#06b6d4', color: '#000000', borderColor: '#06b6d4' } : {}}
+                  style={activeTab === 'booking' ? { background: '#06b6d4', color: '#000000', borderColor: '#06b6d4', fontWeight: 700 } : {}}
                 >
                   <ClipboardList size={15} /> Formulir Booking
                 </button>
-              </>
-            ) : (
-              <button
-                className="btn-primary btn-sm"
-                onClick={() => handleNavClick('admin')}
-              >
-                <ShieldCheck size={15} /> Dashboard Admin
-              </button>
-            )}
-          </div>
 
-          {/* Mobile Hamburger Toggle (HP View Header) */}
-          <div className="view-hp-only">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              style={{
-                background: '#18181b',
-                border: '1px solid #27272a',
-                color: '#f4f4f5',
-                padding: '0.45rem',
-                borderRadius: '8px',
-                cursor: 'pointer'
-              }}
-            >
-              {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
-            </button>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => { setActiveRole('admin'); setActiveTab('admin'); }}
+                  style={{ marginLeft: '0.5rem', borderStyle: 'dashed', borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
+                >
+                  <ShieldCheck size={15} /> Login Admin
+                </button>
+              </>
+            ) : null}
           </div>
         </div>
 
@@ -212,12 +239,15 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 >
                   <ClipboardList size={16} /> Formulir Booking
                 </button>
+                <button
+                  className="btn-secondary btn-sm"
+                  onClick={() => { setActiveRole('admin'); setActiveTab('admin'); setMobileMenuOpen(false); }}
+                  style={{ borderStyle: 'dashed', borderColor: '#f59e0b', color: '#f59e0b' }}
+                >
+                  <ShieldCheck size={16} /> Login Admin
+                </button>
               </>
-            ) : (
-              <button className="btn-primary btn-sm" onClick={() => handleNavClick('admin')}>
-                <ShieldCheck size={16} /> Dashboard Admin
-              </button>
-            )}
+            ) : null}
           </div>
         )}
       </nav>
@@ -334,7 +364,7 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
           </button>
 
           <button
-            onClick={() => handleNavClick(activeRole === 'admin' ? 'admin' : 'home')}
+            onClick={() => { setActiveRole('admin'); setActiveTab('admin'); }}
             style={{
               background: 'none',
               border: 'none',

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { getStoredServices, getStoredSymptoms, generateBookingId } from '../utils/storage';
+import { INDONESIA_CAR_DATABASE, CAR_BRAND_LIST } from '../utils/carData';
 import { Car, User, Phone, FileText, CheckCircle2, ChevronRight, ChevronLeft, Wrench, Sparkles, Printer, Edit3, Clock, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -15,12 +16,27 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
   const [customerName, setCustomerName] = useState('');
   const [phone, setPhone] = useState('');
   const [licensePlate, setLicensePlate] = useState('');
-  const [carModel, setCarModel] = useState('');
+  
+  // Indonesia Car Brand & Model Dropdown State
+  const [carBrand, setCarBrand] = useState('Toyota');
+  const [carModelOption, setCarModelOption] = useState('Fortuner (VRZ / SRZ / GR Sport)');
+  const [customCarModel, setCustomCarModel] = useState('');
   const [carYear, setCarYear] = useState('2020');
+
   const [selectedServices, setSelectedServices] = useState(['free_inspection']);
   const [customManualText, setCustomManualText] = useState('');
   const [symptoms, setSymptoms] = useState([]);
   const [notes, setNotes] = useState('');
+
+  const handleBrandChange = (newBrand) => {
+    setCarBrand(newBrand);
+    const models = INDONESIA_CAR_DATABASE[newBrand] || [];
+    if (models.length > 0) {
+      setCarModelOption(models[0]);
+    } else {
+      setCarModelOption('');
+    }
+  };
 
   const handleToggleService = (serviceId) => {
     if (selectedServices.includes(serviceId)) {
@@ -56,8 +72,12 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
   const handleSubmitBooking = (e) => {
     if (e) e.preventDefault();
 
-    if (!customerName || !phone || !licensePlate || !carModel) {
-      alert('Mohon lengkapi Nama, No HP, Plat Nomor, dan Model Mobil.');
+    const fullCarModelText = (carBrand === 'Lainnya / Merk Khusus' || carModelOption === 'Input Manual Tipe Mobil...')
+      ? (customCarModel.trim() || 'Mobil Custom')
+      : `${carBrand} ${carModelOption}`;
+
+    if (!customerName || !phone || !licensePlate || !fullCarModelText) {
+      alert('Mohon lengkapi Nama, No HP, Plat Nomor, dan Merek & Model Mobil.');
       return;
     }
 
@@ -85,7 +105,7 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
       customerName,
       phone,
       licensePlate: licensePlate.toUpperCase(),
-      carModel: `${carModel} (${carYear})`,
+      carModel: `${fullCarModelText} (${carYear})`,
       bookingDate: todayStr,
       startDate: todayStr,
       durationDays: 3,
@@ -151,7 +171,7 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
         {/* STEP 1: Customer & Vehicle Info */}
         {step === 1 && (
           <form onSubmit={(e) => { e.preventDefault(); setStep(2); }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.25rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.25rem' }}>
               <div className="form-group">
                 <label className="form-label"><User size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Nama Lengkap Pelanggan *</label>
                 <input type="text" className="form-control" placeholder="Contoh: Bapak Hendra" value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
@@ -168,8 +188,31 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
               </div>
 
               <div className="form-group">
-                <label className="form-label"><Wrench size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Merek & Tipe Mobil *</label>
-                <input type="text" className="form-control" placeholder="Contoh: Toyota Fortuner / Honda Civic" value={carModel} onChange={(e) => setCarModel(e.target.value)} required />
+                <label className="form-label"><Car size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Merek Mobil *</label>
+                <select 
+                  className="form-control"
+                  value={carBrand}
+                  onChange={(e) => handleBrandChange(e.target.value)}
+                  required
+                >
+                  {CAR_BRAND_LIST.map(brand => (
+                    <option key={brand} value={brand}>{brand}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-group">
+                <label className="form-label"><Wrench size={15} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Tipe / Model Mobil *</label>
+                <select 
+                  className="form-control"
+                  value={carModelOption}
+                  onChange={(e) => setCarModelOption(e.target.value)}
+                  required
+                >
+                  {(INDONESIA_CAR_DATABASE[carBrand] || []).map(model => (
+                    <option key={model} value={model}>{model}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="form-group">
@@ -180,6 +223,20 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues }
                   ))}
                 </select>
               </div>
+
+              {(carBrand === 'Lainnya / Merk Khusus' || carModelOption === 'Input Manual Tipe Mobil...') && (
+                <div className="form-group" style={{ gridColumn: '1 / -1' }}>
+                  <label className="form-label" style={{ color: '#38bdf8', fontWeight: 600 }}>Tuliskan Merek & Tipe Mobil Spesifik Anda *</label>
+                  <input 
+                    type="text" 
+                    className="form-control"
+                    placeholder="Contoh: Isuzu Panther Grand Royal 1997 / Nissan Fairlady 370Z..."
+                    value={customCarModel}
+                    onChange={(e) => setCustomCarModel(e.target.value)}
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.5rem' }}>

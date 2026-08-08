@@ -223,25 +223,75 @@ h1, h2, h3, .tech-font {
   margin-bottom: 1rem;
 }
 
-/* Print Invoice Styling */
+/* Print Invoice & Receipt Styling (Auto Portrait Generator Mode) */
+@page {
+  size: portrait;
+  margin: 10mm;
+}
+
 @media print {
-  body * {
-    visibility: hidden;
+  @page {
+    size: portrait;
+    margin: 8mm;
   }
-  .printable-area, .printable-area * {
-    visibility: visible;
-  }
-  .printable-area {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: white !important;
-    color: black !important;
-    padding: 20px;
-  }
-  .no-print {
+
+  /* Hide non-printable web elements */
+  nav, footer, header, .no-print, .view-hp-only, button {
     display: none !important;
+  }
+
+  body, html {
+    background: #ffffff !important;
+    color: #000000 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Reset fixed modal containers for clean print generator flow */
+  div[style*="position: fixed"], 
+  div[style*="position: absolute"] {
+    position: static !important;
+    background: #ffffff !important;
+    backdrop-filter: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  /* Hide background web page elements outside the printable modal */
+  #root > div > *:not(div[style*="position: fixed"]) {
+    display: none !important;
+  }
+
+  /* Ensure printable generator document renders pure white & high-contrast black text */
+  .printable-area {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    margin: 0 auto !important;
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .printable-area * {
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Thermal printer roll styling (58mm / 80mm) */
+  .printable-area.thermal-mode {
+    width: 58mm !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+    font-size: 10px !important;
+    font-family: monospace, sans-serif !important;
   }
 }
 

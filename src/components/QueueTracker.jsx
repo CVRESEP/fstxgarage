@@ -1,11 +1,20 @@
 import React, { useState } from 'react';
 import { STATUS_MAP, INITIAL_SERVICES } from '../utils/storage';
-import { Search, Lock, CheckCircle2, ArrowRight } from 'lucide-react';
+import { Search, Lock, CheckCircle2, ArrowRight, Wrench, FileText, PlusCircle } from 'lucide-react';
 
 export default function QueueTracker({ queues }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searched, setSearched] = useState(false);
   const [foundQueue, setFoundQueue] = useState(null);
+
+  const TRACKER_STEPS = [
+    { key: 'BOOKING', label: '1. Menunggu ACC Admin', step: 1 },
+    { key: 'MENUNGGU_PENGANTARAN', label: '2. Menunggu Pengantaran Mobil', step: 2 },
+    { key: 'INSPEKSI', label: '3. Inspeksi & Diagnosa (Pit)', step: 3 },
+    { key: 'PENGERJAAN', label: '4. Proses Pengerjaan', step: 4 },
+    { key: 'TEST_DRIVE', label: '5. Test Drive & QC', step: 5 },
+    { key: 'SELESAI', label: '6. Selesai / Siap Diambil', step: 6 },
+  ];
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -39,6 +48,11 @@ export default function QueueTracker({ queues }) {
 
   const formatCurrency = (val) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 }).format(val || 0);
+  };
+
+  const getCurrentStepNum = (statusKey) => {
+    if (statusKey === 'CUSTOM') return 4; // Custom status maps to Proses Pengerjaan (Step 4)
+    return STATUS_MAP[statusKey]?.step || 1;
   };
 
   return (
@@ -127,31 +141,96 @@ export default function QueueTracker({ queues }) {
             </div>
           </div>
 
-          {/* Timeline Progress */}
-          <div style={{ marginBottom: '1.5rem', background: '#09090b', padding: '1rem', borderRadius: '8px', border: '1px solid #27272a' }}>
+          {/* Timeline Progress (Standard 5 Steps Only with Sub-Process Box inside Step 3) */}
+          <div style={{ marginBottom: '1.5rem', background: '#09090b', padding: '1.25rem', borderRadius: '8px', border: '1px solid #27272a' }}>
             <span style={{ fontSize: '0.8rem', color: '#a1a1aa', display: 'block', marginBottom: '1rem', fontWeight: 700 }}>PROGRESS STAGE PENGERJAAN:</span>
             
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {Object.keys(STATUS_MAP).map((key) => {
-                const stepObj = STATUS_MAP[key];
-                const currentStepNum = STATUS_MAP[foundQueue.status]?.step || 1;
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              {TRACKER_STEPS.map((stepObj) => {
+                const currentStepNum = getCurrentStepNum(foundQueue.status);
                 const isDone = currentStepNum > stepObj.step;
                 const isCurrent = currentStepNum === stepObj.step;
 
                 return (
-                  <div key={key} style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                  <div key={stepObj.key} style={{ display: 'flex', alignItems: 'flex-start', gap: '0.85rem' }}>
                     <div style={{
-                      width: '24px', height: '24px', borderRadius: '50%',
+                      width: '28px', height: '28px', borderRadius: '50%',
                       background: isDone ? '#10b981' : isCurrent ? '#f59e0b' : '#27272a',
                       color: isDone || isCurrent ? '#000' : '#a1a1aa',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.75rem'
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '0.8rem', flexShrink: 0
                     }}>
                       {isDone ? '✓' : stepObj.step}
                     </div>
-                    <div>
-                      <div style={{ fontSize: '0.85rem', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#fbbf24' : isDone ? '#34d399' : '#a1a1aa' }}>
+
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.9rem', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? '#fbbf24' : isDone ? '#34d399' : '#a1a1aa' }}>
                         {stepObj.label}
                       </div>
+
+                      {/* SUB-PROSES PENGERJAAN INSIDE STEP 3 (PROSES PENGERJAAN) */}
+                      {stepObj.step === 3 && (
+                        <div style={{ marginTop: '0.5rem' }}>
+                          
+                          {/* 1. Custom Status Description from Admin */}
+                          {foundQueue.customStatusText && (
+                            <div style={{ 
+                              background: 'rgba(245, 158, 11, 0.12)', 
+                              border: '1px solid #f59e0b', 
+                              padding: '0.65rem 0.85rem', 
+                              borderRadius: '8px', 
+                              marginBottom: '0.5rem' 
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: '#f59e0b', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                ⚙️ SUB-PROSES CUSTOM (UPDATE ADMIN):
+                              </span>
+                              <p style={{ color: '#f8fafc', fontSize: '0.85rem', margin: '4px 0 0 0', fontWeight: 600, lineHeight: 1.4 }}>
+                                "{foundQueue.customStatusText}"
+                              </p>
+                            </div>
+                          )}
+
+                          {/* 2. Additional Services Added Mid-Progress */}
+                          {foundQueue.additionalServices && foundQueue.additionalServices.length > 0 && (
+                            <div style={{ 
+                              background: 'rgba(6, 182, 212, 0.12)', 
+                              border: '1px solid #06b6d4', 
+                              padding: '0.65rem 0.85rem', 
+                              borderRadius: '8px',
+                              marginBottom: '0.5rem'
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: '#38bdf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                ⚡ SUB-PROSES LAYANAN TAMBAHAN:
+                              </span>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                                {foundQueue.additionalServices.map((addSrv, idx) => (
+                                  <div key={idx} style={{ fontSize: '0.8rem', color: '#f8fafc' }}>
+                                    • <strong>{addSrv.name}</strong> {addSrv.option === 'HARI_LAIN' ? `(Dijadwalkan: ${addSrv.newDate})` : `(+ Extra Biaya: ${formatCurrency(addSrv.extraFee)})`}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* 3. Manual Custom Request from Booking Form */}
+                          {foundQueue.customManualText && (
+                            <div style={{ 
+                              background: 'rgba(129, 140, 248, 0.12)', 
+                              border: '1px solid #818cf8', 
+                              padding: '0.65rem 0.85rem', 
+                              borderRadius: '8px' 
+                            }}>
+                              <span style={{ fontSize: '0.75rem', color: '#818cf8', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                                📝 PERMINTAAN CUSTOM SPESIFIK PELANGGAN:
+                              </span>
+                              <p style={{ color: '#cbd5e1', fontSize: '0.8rem', margin: '4px 0 0 0', fontStyle: 'italic' }}>
+                                "{foundQueue.customManualText}"
+                              </p>
+                            </div>
+                          )}
+
+                        </div>
+                      )}
+
                     </div>
                   </div>
                 );
