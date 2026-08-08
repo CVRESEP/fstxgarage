@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
-import { INITIAL_SERVICES } from '../utils/storage';
+import { getStoredServices } from '../utils/storage';
 import { Calculator, Check, Info, Wrench, Shield, ArrowRight, ShoppingCart, Trash2, Plus, Minus, Printer, Store, CreditCard, Tag } from 'lucide-react';
 
-export default function PriceEstimator({ onBookWithServices }) {
+export default function PriceEstimator({ onBookWithServices, services: customServices }) {
+  const servicesList = (customServices && customServices.length > 0) ? customServices : getStoredServices();
   const [carType, setCarType] = useState('suv'); // citycar, sedan, suv, luxury
   const [cartItems, setCartItems] = useState([
     { id: 'free_inspection', qty: 1 },
@@ -22,8 +23,8 @@ export default function PriceEstimator({ onBookWithServices }) {
   const categories = ['ALL', 'Inspeksi & Diagnosa', 'Presisi Wheel Alignment', 'Kemudi & Ball Joint', 'Suspensi', 'Bushing & Arm'];
 
   const filteredServices = activeCategory === 'ALL' 
-    ? INITIAL_SERVICES 
-    : INITIAL_SERVICES.filter(s => s.category.toLowerCase().includes(activeCategory.toLowerCase()));
+    ? servicesList 
+    : servicesList.filter(s => s.category.toLowerCase().includes(activeCategory.toLowerCase()));
 
   const handleAddToCart = (serviceId) => {
     const existing = cartItems.find(item => item.id === serviceId);
@@ -50,7 +51,7 @@ export default function PriceEstimator({ onBookWithServices }) {
 
   const calculateTotalCost = () => {
     return cartItems.reduce((total, cartItem) => {
-      const srv = INITIAL_SERVICES.find(s => s.id === cartItem.id);
+      const srv = servicesList.find(s => s.id === cartItem.id);
       if (!srv) return total;
       const unitPrice = Math.round(srv.price * mult);
       return total + (unitPrice * cartItem.qty);
@@ -238,7 +239,7 @@ export default function PriceEstimator({ onBookWithServices }) {
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.6rem', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px' }}>
                   {cartItems.map(item => {
-                    const srv = INITIAL_SERVICES.find(s => s.id === item.id);
+                    const srv = servicesList.find(s => s.id === item.id);
                     if (!srv) return null;
                     const unitPrice = Math.round(srv.price * mult);
                     const itemTotal = unitPrice * item.qty;

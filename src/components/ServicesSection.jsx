@@ -1,8 +1,9 @@
 import React from 'react';
-import { INITIAL_SERVICES, INITIAL_TESTIMONIALS } from '../utils/storage';
+import { getStoredServices } from '../utils/storage';
 import { ShieldCheck, Wrench, AlertTriangle, CheckCircle2, ChevronRight, Star, HelpCircle } from 'lucide-react';
 
-export default function ServicesSection({ onBookService, testimonials: customTestimonials }) {
+export default function ServicesSection({ onBookService, services: customServices, testimonials: customTestimonials }) {
+  const displayServices = (customServices && customServices.length > 0) ? customServices : getStoredServices();
   const displayTestimonials = customTestimonials && customTestimonials.length > 0 ? customTestimonials : [
     {
       name: 'Bapak Aditia (Owner Fortuner VRZ)',
@@ -74,7 +75,7 @@ export default function ServicesSection({ onBookService, testimonials: customTes
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '4rem' }}>
-        {INITIAL_SERVICES.map(srv => (
+        {displayServices.map(srv => (
           <div key={srv.id} className="glass-card" style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>

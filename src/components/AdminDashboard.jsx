@@ -28,6 +28,8 @@ const WhatsAppIcon = ({ size = 15, color = '#25D366' }) => (
 export default function AdminDashboard({ 
   queues, 
   setQueues, 
+  services: propServices,
+  setServices: propSetServices,
   onOpenSPK, 
   siteConfig, 
   setSiteConfig, 
@@ -76,7 +78,20 @@ export default function AdminDashboard({
   const [newTestiComment, setNewTestiComment] = useState('');
 
   // Dynamic Services, Symptoms & Products state
-  const [services, setServices] = useState(getStoredServices());
+  const [localServices, setLocalServices] = useState(propServices || getStoredServices());
+  const services = propServices || localServices;
+  const setServices = (val) => {
+    if (typeof val === 'function') {
+      const next = val(services);
+      if (propSetServices) propSetServices(next);
+      setLocalServices(next);
+      saveServicesToStorage(next);
+    } else {
+      if (propSetServices) propSetServices(val);
+      setLocalServices(val);
+      saveServicesToStorage(val);
+    }
+  };
   const [symptoms, setSymptoms] = useState(getStoredSymptoms());
   const [products, setProducts] = useState(getStoredProducts());
 

@@ -13,6 +13,8 @@ import Footer from './components/Footer';
 import { 
   getStoredQueues, 
   saveQueuesToStorage,
+  getStoredServices,
+  saveServicesToStorage,
   getStoredSiteConfig,
   saveSiteConfigToStorage,
   getStoredTestimonials,
@@ -20,13 +22,16 @@ import {
 } from './utils/storage';
 import { 
   fetchQueuesFromTurso, 
-  fetchSiteConfigFromTurso 
+  fetchServicesFromTurso,
+  fetchSiteConfigFromTurso,
+  fetchTestimonialsFromTurso
 } from './utils/turso';
 
 export default function App() {
   const [activeRole, setActiveRole] = useState('customer'); // Default: Clean Customer View
   const [activeTab, setActiveTab] = useState('home'); // 'home', 'calendar', 'booking', 'tracker', 'estimator', 'admin'
   const [queues, setQueues] = useState(getStoredQueues());
+  const [services, setServices] = useState(getStoredServices());
   const [siteConfig, setSiteConfig] = useState(getStoredSiteConfig());
   const [testimonials, setTestimonials] = useState(getStoredTestimonials());
   const [activeSPKQueue, setActiveSPKQueue] = useState(null);
@@ -39,9 +44,17 @@ export default function App() {
       if (tursoQueues && Array.isArray(tursoQueues)) {
         setQueues(tursoQueues);
       }
+      const tursoServices = await fetchServicesFromTurso();
+      if (tursoServices && Array.isArray(tursoServices) && tursoServices.length > 0) {
+        setServices(tursoServices);
+      }
       const tursoConfig = await fetchSiteConfigFromTurso();
       if (tursoConfig) {
         setSiteConfig(tursoConfig);
+      }
+      const tursoTestimonials = await fetchTestimonialsFromTurso();
+      if (tursoTestimonials && Array.isArray(tursoTestimonials) && tursoTestimonials.length > 0) {
+        setTestimonials(tursoTestimonials);
       }
     };
     loadTursoData();
@@ -60,17 +73,22 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashCheck);
   }, []);
 
-  // Sync queues state to localStorage
+  // Sync queues state to storage & Turso
   useEffect(() => {
     saveQueuesToStorage(queues);
   }, [queues]);
 
-  // Sync siteConfig state to localStorage
+  // Sync services state to storage & Turso
+  useEffect(() => {
+    saveServicesToStorage(services);
+  }, [services]);
+
+  // Sync siteConfig state to storage & Turso
   useEffect(() => {
     saveSiteConfigToStorage(siteConfig);
   }, [siteConfig]);
 
-  // Sync testimonials state to localStorage
+  // Sync testimonials state to storage & Turso
   useEffect(() => {
     saveTestimonialsToStorage(testimonials);
   }, [testimonials]);
@@ -110,6 +128,7 @@ export default function App() {
                 />
                 <ServicesSection 
                   onBookService={() => setActiveTab('calendar')} 
+                  services={services}
                   testimonials={testimonials}
                 />
               </>
@@ -128,6 +147,7 @@ export default function App() {
                 onClose={() => setActiveTab('home')}
                 existingQueues={queues}
                 initialDate={selectedCalendarDate}
+                services={services}
               />
             )}
 
@@ -141,6 +161,7 @@ export default function App() {
             {activeTab === 'estimation' && (
               <PriceEstimator 
                 onBookWithServices={() => setActiveTab('calendar')}
+                services={services}
               />
             )}
           </>
@@ -149,6 +170,8 @@ export default function App() {
           <AdminDashboard 
             queues={queues}
             setQueues={setQueues}
+            services={services}
+            setServices={setServices}
             onOpenSPK={(q) => setActiveSPKQueue(q)}
             siteConfig={siteConfig}
             setSiteConfig={setSiteConfig}
@@ -178,7 +201,7 @@ export default function App() {
             setActiveRole('customer');
             setActiveTab(tab);
           }
-        }} 
+        }}
       />
 
     </div>
