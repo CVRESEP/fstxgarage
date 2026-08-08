@@ -9,8 +9,7 @@ import {
   calculateWorkdayEndDate
 } from '../utils/storage';
 import { 
-  getStoredTursoCredentials, saveTursoCredentials, 
-  testTursoConnection, initTursoSchema, resetTursoClient 
+  deleteQueueFromTurso, deleteProductFromTurso
 } from '../utils/turso';
 import { speakQueueCall } from '../utils/audio';
 import { 
@@ -30,6 +29,12 @@ export default function AdminDashboard({
   setQueues, 
   services: propServices,
   setServices: propSetServices,
+  products: propProducts,
+  setProducts: propSetProducts,
+  symptoms: propSymptoms,
+  setSymptoms: propSetSymptoms,
+  holidays: propHolidays,
+  setHolidays: propSetHolidays,
   onOpenSPK, 
   siteConfig, 
   setSiteConfig, 
@@ -77,23 +82,25 @@ export default function AdminDashboard({
   const [newTestiRating, setNewTestiRating] = useState(5);
   const [newTestiComment, setNewTestiComment] = useState('');
 
-  // Dynamic Services, Symptoms & Products state
-  const [localServices, setLocalServices] = useState(propServices || getStoredServices());
-  const services = propServices || localServices;
+  // Dynamic Services, Symptoms & Products — all driven by parent App.jsx props (synced to Turso)
+  const services = propServices || getStoredServices();
   const setServices = (val) => {
-    if (typeof val === 'function') {
-      const next = val(services);
-      if (propSetServices) propSetServices(next);
-      setLocalServices(next);
-      saveServicesToStorage(next);
-    } else {
-      if (propSetServices) propSetServices(val);
-      setLocalServices(val);
-      saveServicesToStorage(val);
-    }
+    const next = typeof val === 'function' ? val(services) : val;
+    if (propSetServices) propSetServices(next);
+    saveServicesToStorage(next);
   };
-  const [symptoms, setSymptoms] = useState(getStoredSymptoms());
-  const [products, setProducts] = useState(getStoredProducts());
+  const symptoms = propSymptoms || getStoredSymptoms();
+  const setSymptoms = (val) => {
+    const next = typeof val === 'function' ? val(symptoms) : val;
+    if (propSetSymptoms) propSetSymptoms(next);
+    saveSymptomsToStorage(next);
+  };
+  const products = propProducts || getStoredProducts();
+  const setProducts = (val) => {
+    const next = typeof val === 'function' ? val(products) : val;
+    if (propSetProducts) propSetProducts(next);
+    saveProductsToStorage(next);
+  };
 
   // Modal states for adding/editing services and products
   const [showAddServiceModal, setShowAddServiceModal] = useState(false);
@@ -117,15 +124,14 @@ export default function AdminDashboard({
     5: { label: 'Major Reconstruction', duration: '5 Hari', color: '#ef4444' }
   };
 
-  const [maxStage, setMaxStage] = useState(() => parseInt(localStorage.getItem('FSTWORKS_MAX_STAGE') || '5', 10));
+  const [maxStage, setMaxStage] = useState(() => {
+    const sc = siteConfig || {};
+    return parseInt(sc._maxStage || '5', 10);
+  });
   
   const [stageConfigs, setStageConfigs] = useState(() => {
-    try {
-      const saved = localStorage.getItem('FSTWORKS_STAGE_CONFIG_V1');
-      return saved ? JSON.parse(saved) : DEFAULT_STAGE_CONFIGS;
-    } catch {
-      return DEFAULT_STAGE_CONFIGS;
-    }
+    const sc = siteConfig || {};
+    return sc._stageConfigs || DEFAULT_STAGE_CONFIGS;
   });
 
   const [showStageConfigModal, setShowStageConfigModal] = useState(false);
@@ -147,9 +153,11 @@ export default function AdminDashboard({
     e.preventDefault();
     const newMax = parseInt(tempMaxStage, 10) || 5;
     setMaxStage(newMax);
-    localStorage.setItem('FSTWORKS_MAX_STAGE', newMax.toString());
     setStageConfigs(tempStageConfigs);
-    localStorage.setItem('FSTWORKS_STAGE_CONFIG_V1', JSON.stringify(tempStageConfigs));
+    // Persist stage configs inside siteConfig so it goes to Turso
+    if (setSiteConfig) {
+      setSiteConfig(prev => ({ ...prev, _maxStage: newMax.toString(), _stageConfigs: tempStageConfigs }));
+    }
     setShowStageConfigModal(false);
   };
 
@@ -202,7 +210,7 @@ export default function AdminDashboard({
     if (window.confirm('Yakin ingin menghapus produk ini dari katalog?')) {
       const updated = products.filter(p => p.id !== productId);
       setProducts(updated);
-      saveProductsToStorage(updated);
+      deleteProductFromTurso(productId);
     }
   };
 
@@ -642,6 +650,7 @@ export default function AdminDashboard({
     if (window.confirm('Apakah Anda yakin ingin menghapus data ini?')) {
       const updated = queues.filter(q => q.id !== queueId);
       setQueues(updated);
+      deleteQueueFromTurso(queueId);
     }
   };
 
