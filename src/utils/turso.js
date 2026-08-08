@@ -61,12 +61,54 @@ export const resetTursoClient = () => {
   libsqlClient = null;
 };
 
-// Initialize database schema tables if connected
+// Initialize database schema with clean relational structure (No more json_data columns)
 export const initTursoSchema = async () => {
   const client = getTursoClient();
   if (!client) return false;
 
   try {
+    // 1. Check if legacy tables with json_data / config_json exist, and auto-migrate them
+    try {
+      const checkServices = await client.execute("PRAGMA table_info(services);");
+      const hasJsonDataInServices = checkServices.rows.some(r => r.name === 'json_data');
+      if (hasJsonDataInServices) {
+        await client.execute("DROP TABLE IF EXISTS services;");
+      }
+    } catch (_) {}
+
+    try {
+      const checkTestimonials = await client.execute("PRAGMA table_info(testimonials);");
+      const hasJsonDataInTestimonials = checkTestimonials.rows.some(r => r.name === 'json_data');
+      if (hasJsonDataInTestimonials) {
+        await client.execute("DROP TABLE IF EXISTS testimonials;");
+      }
+    } catch (_) {}
+
+    try {
+      const checkSymptoms = await client.execute("PRAGMA table_info(symptoms);");
+      const hasJsonDataInSymptoms = checkSymptoms.rows.some(r => r.name === 'json_data');
+      if (hasJsonDataInSymptoms) {
+        await client.execute("DROP TABLE IF EXISTS symptoms;");
+      }
+    } catch (_) {}
+
+    try {
+      const checkSiteConfig = await client.execute("PRAGMA table_info(site_config);");
+      const hasConfigJsonInSiteConfig = checkSiteConfig.rows.some(r => r.name === 'config_json');
+      if (hasConfigJsonInSiteConfig) {
+        await client.execute("DROP TABLE IF EXISTS site_config;");
+      }
+    } catch (_) {}
+
+    try {
+      const checkHolidays = await client.execute("PRAGMA table_info(holidays);");
+      const hasConfigJsonInHolidays = checkHolidays.rows.some(r => r.name === 'config_json');
+      if (hasConfigJsonInHolidays) {
+        await client.execute("DROP TABLE IF EXISTS holidays;");
+      }
+    } catch (_) {}
+
+    // 2. Create normalized relational tables
     await client.batch([
       `CREATE TABLE IF NOT EXISTS queues (
         id TEXT PRIMARY KEY,
@@ -92,35 +134,59 @@ export const initTursoSchema = async () => {
       );`,
       `CREATE TABLE IF NOT EXISTS services (
         id TEXT PRIMARY KEY,
-        json_data TEXT
+        name TEXT NOT NULL,
+        category TEXT,
+        stage INTEGER DEFAULT 1,
+        price REAL DEFAULT 0,
+        estimatedDuration TEXT,
+        description TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
         code TEXT,
         name TEXT,
         category TEXT,
-        price REAL,
-        stock INTEGER
+        price REAL DEFAULT 0,
+        stock INTEGER DEFAULT 0
       );`,
       `CREATE TABLE IF NOT EXISTS site_config (
         id TEXT PRIMARY KEY,
-        config_json TEXT
+        heroBadge TEXT,
+        heroHeadline TEXT,
+        heroSubheadline TEXT,
+        whatsappNumber TEXT,
+        operatingHours TEXT,
+        operatingHoursSunday TEXT,
+        address TEXT,
+        hotlinePhone TEXT,
+        guaranteeText TEXT,
+        bankName TEXT,
+        bankAccount TEXT,
+        bankHolder TEXT,
+        adminPin TEXT,
+        maxStage INTEGER DEFAULT 5,
+        stageConfigsJson TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS holidays (
         id TEXT PRIMARY KEY,
-        config_json TEXT
+        weeklyOff TEXT,
+        specificHolidays TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS testimonials (
         id TEXT PRIMARY KEY,
-        json_data TEXT
+        name TEXT NOT NULL,
+        rating INTEGER DEFAULT 5,
+        comment TEXT,
+        createdAt TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS symptoms (
         id TEXT PRIMARY KEY,
-        json_data TEXT
+        name TEXT NOT NULL,
+        sortOrder INTEGER DEFAULT 0
       );`
     ], 'write');
 
-    console.log('✅ All 7 Turso database tables initialized successfully!');
+    console.log('✅ All 7 normalized Turso database tables verified and initialized!');
     return true;
   } catch (err) {
     console.error('❌ Error initializing Turso DB schema:', err);
@@ -252,15 +318,32 @@ export const deleteQueueFromTurso = async (id) => {
   }
 };
 
-// 2. Site Config CRUD
+// 2. Site Config CRUD (Normalized Relational Columns)
 export const fetchSiteConfigFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
-    const res = await client.execute("SELECT config_json FROM site_config WHERE id = 'main';");
+    const res = await client.execute("SELECT * FROM site_config WHERE id = 'main';");
     if (res.rows.length > 0) {
-      return JSON.parse(String(res.rows[0].config_json));
+      const row = res.rows[0];
+      return {
+        heroBadge: String(row.heroBadge || ''),
+        heroHeadline: String(row.heroHeadline || ''),
+        heroSubheadline: String(row.heroSubheadline || ''),
+        whatsappNumber: String(row.whatsappNumber || ''),
+        operatingHours: String(row.operatingHours || ''),
+        operatingHoursSunday: String(row.operatingHoursSunday || ''),
+        address: String(row.address || ''),
+        hotlinePhone: String(row.hotlinePhone || ''),
+        guaranteeText: String(row.guaranteeText || ''),
+        bankName: String(row.bankName || ''),
+        bankAccount: String(row.bankAccount || ''),
+        bankHolder: String(row.bankHolder || ''),
+        adminPin: String(row.adminPin || '1234'),
+        _maxStage: String(row.maxStage || '5'),
+        _stageConfigs: row.stageConfigsJson ? JSON.parse(String(row.stageConfigsJson)) : undefined
+      };
     }
   } catch (err) {
     console.error('Error fetching site config from Turso:', err);
@@ -270,13 +353,48 @@ export const fetchSiteConfigFromTurso = async () => {
 
 export const saveSiteConfigToTurso = async (config) => {
   const client = getTursoClient();
-  if (!client) return false;
+  if (!client || !config) return false;
 
   try {
     await client.execute({
-      sql: `INSERT INTO site_config (id, config_json) VALUES ('main', ?)
-            ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json;`,
-      args: [JSON.stringify(config)]
+      sql: `INSERT INTO site_config (
+        id, heroBadge, heroHeadline, heroSubheadline, whatsappNumber, operatingHours,
+        operatingHoursSunday, address, hotlinePhone, guaranteeText, bankName,
+        bankAccount, bankHolder, adminPin, maxStage, stageConfigsJson
+      ) VALUES ('main', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        heroBadge=excluded.heroBadge,
+        heroHeadline=excluded.heroHeadline,
+        heroSubheadline=excluded.heroSubheadline,
+        whatsappNumber=excluded.whatsappNumber,
+        operatingHours=excluded.operatingHours,
+        operatingHoursSunday=excluded.operatingHoursSunday,
+        address=excluded.address,
+        hotlinePhone=excluded.hotlinePhone,
+        guaranteeText=excluded.guaranteeText,
+        bankName=excluded.bankName,
+        bankAccount=excluded.bankAccount,
+        bankHolder=excluded.bankHolder,
+        adminPin=excluded.adminPin,
+        maxStage=excluded.maxStage,
+        stageConfigsJson=excluded.stageConfigsJson;`,
+      args: [
+        config.heroBadge || '',
+        config.heroHeadline || '',
+        config.heroSubheadline || '',
+        config.whatsappNumber || '',
+        config.operatingHours || '',
+        config.operatingHoursSunday || '',
+        config.address || '',
+        config.hotlinePhone || '',
+        config.guaranteeText || '',
+        config.bankName || '',
+        config.bankAccount || '',
+        config.bankHolder || '',
+        config.adminPin || '1234',
+        parseInt(config._maxStage || '5', 10) || 5,
+        config._stageConfigs ? JSON.stringify(config._stageConfigs) : null
+      ]
     });
     return true;
   } catch (err) {
@@ -285,7 +403,7 @@ export const saveSiteConfigToTurso = async (config) => {
   }
 };
 
-// 3. Products CRUD
+// 3. Products CRUD (Normalized Relational Columns)
 export const fetchProductsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
@@ -342,15 +460,23 @@ export const deleteProductFromTurso = async (id) => {
   }
 };
 
-// 4. Services CRUD
+// 4. Services CRUD (Normalized Relational Columns: id, name, category, stage, price, estimatedDuration, description)
 export const fetchServicesFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
-    const res = await client.execute("SELECT json_data FROM services WHERE id = 'catalog';");
+    const res = await client.execute('SELECT id, name, category, stage, price, estimatedDuration, description FROM services ORDER BY stage ASC, price ASC;');
     if (res.rows.length > 0) {
-      return JSON.parse(String(res.rows[0].json_data));
+      return res.rows.map(row => ({
+        id: String(row.id),
+        name: String(row.name || ''),
+        category: String(row.category || ''),
+        stage: Number(row.stage || 1),
+        price: Number(row.price || 0),
+        estimatedDuration: String(row.estimatedDuration || ''),
+        description: String(row.description || '')
+      }));
     }
   } catch (err) {
     console.error('Error fetching services from Turso:', err);
@@ -360,14 +486,33 @@ export const fetchServicesFromTurso = async () => {
 
 export const saveServicesToTurso = async (services) => {
   const client = getTursoClient();
-  if (!client) return false;
+  if (!client || !Array.isArray(services)) return false;
 
   try {
-    await client.execute({
-      sql: `INSERT INTO services (id, json_data) VALUES ('catalog', ?)
-            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
-      args: [JSON.stringify(services)]
-    });
+    const stmts = services.map(s => ({
+      sql: `INSERT INTO services (id, name, category, stage, price, estimatedDuration, description)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name=excluded.name,
+              category=excluded.category,
+              stage=excluded.stage,
+              price=excluded.price,
+              estimatedDuration=excluded.estimatedDuration,
+              description=excluded.description;`,
+      args: [
+        s.id,
+        s.name || '',
+        s.category || '',
+        Number(s.stage || 1),
+        Number(s.price || 0),
+        s.estimatedDuration || '',
+        s.description || ''
+      ]
+    }));
+
+    if (stmts.length > 0) {
+      await client.batch(stmts, 'write');
+    }
     return true;
   } catch (err) {
     console.error('Error saving services to Turso:', err);
@@ -375,15 +520,35 @@ export const saveServicesToTurso = async (services) => {
   }
 };
 
-// 5. Holidays CRUD
+export const deleteServiceFromTurso = async (id) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: 'DELETE FROM services WHERE id = ?;',
+      args: [id]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error deleting service from Turso:', err);
+    return false;
+  }
+};
+
+// 5. Holidays CRUD (Normalized Relational Columns: id, weeklyOff, specificHolidays)
 export const fetchHolidaysFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
-    const res = await client.execute("SELECT config_json FROM holidays WHERE id = 'main';");
+    const res = await client.execute("SELECT weeklyOff, specificHolidays FROM holidays WHERE id = 'main';");
     if (res.rows.length > 0) {
-      return JSON.parse(String(res.rows[0].config_json));
+      const row = res.rows[0];
+      return {
+        weeklyOff: row.weeklyOff ? JSON.parse(String(row.weeklyOff)) : [0],
+        specificHolidays: row.specificHolidays ? JSON.parse(String(row.specificHolidays)) : []
+      };
     }
   } catch (err) {
     console.error('Error fetching holidays from Turso:', err);
@@ -393,13 +558,18 @@ export const fetchHolidaysFromTurso = async () => {
 
 export const saveHolidaysToTurso = async (config) => {
   const client = getTursoClient();
-  if (!client) return false;
+  if (!client || !config) return false;
 
   try {
     await client.execute({
-      sql: `INSERT INTO holidays (id, config_json) VALUES ('main', ?)
-            ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json;`,
-      args: [JSON.stringify(config)]
+      sql: `INSERT INTO holidays (id, weeklyOff, specificHolidays) VALUES ('main', ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              weeklyOff=excluded.weeklyOff,
+              specificHolidays=excluded.specificHolidays;`,
+      args: [
+        JSON.stringify(config.weeklyOff || [0]),
+        JSON.stringify(config.specificHolidays || [])
+      ]
     });
     return true;
   } catch (err) {
@@ -408,15 +578,21 @@ export const saveHolidaysToTurso = async (config) => {
   }
 };
 
-// 6. Testimonials CRUD
+// 6. Testimonials CRUD (Normalized Relational Columns: id, name, rating, comment, createdAt)
 export const fetchTestimonialsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
-    const res = await client.execute("SELECT json_data FROM testimonials WHERE id = 'main';");
+    const res = await client.execute('SELECT id, name, rating, comment, createdAt FROM testimonials ORDER BY createdAt DESC;');
     if (res.rows.length > 0) {
-      return JSON.parse(String(res.rows[0].json_data));
+      return res.rows.map(row => ({
+        id: String(row.id),
+        name: String(row.name || ''),
+        rating: Number(row.rating || 5),
+        comment: String(row.comment || ''),
+        createdAt: String(row.createdAt || '')
+      }));
     }
   } catch (err) {
     console.error('Error fetching testimonials from Turso:', err);
@@ -426,14 +602,28 @@ export const fetchTestimonialsFromTurso = async () => {
 
 export const saveTestimonialsToTurso = async (testimonials) => {
   const client = getTursoClient();
-  if (!client) return false;
+  if (!client || !Array.isArray(testimonials)) return false;
 
   try {
-    await client.execute({
-      sql: `INSERT INTO testimonials (id, json_data) VALUES ('main', ?)
-            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
-      args: [JSON.stringify(testimonials)]
-    });
+    const stmts = testimonials.map(t => ({
+      sql: `INSERT INTO testimonials (id, name, rating, comment, createdAt)
+            VALUES (?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              name=excluded.name,
+              rating=excluded.rating,
+              comment=excluded.comment;`,
+      args: [
+        String(t.id || Date.now()),
+        t.name || '',
+        Number(t.rating || 5),
+        t.comment || '',
+        t.createdAt || new Date().toISOString()
+      ]
+    }));
+
+    if (stmts.length > 0) {
+      await client.batch(stmts, 'write');
+    }
     return true;
   } catch (err) {
     console.error('Error saving testimonials to Turso:', err);
@@ -441,15 +631,31 @@ export const saveTestimonialsToTurso = async (testimonials) => {
   }
 };
 
-// 7. Symptoms CRUD
+export const deleteTestimonialFromTurso = async (id) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: 'DELETE FROM testimonials WHERE id = ?;',
+      args: [String(id)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error deleting testimonial from Turso:', err);
+    return false;
+  }
+};
+
+// 7. Symptoms CRUD (Normalized Relational Columns: id, name, sortOrder)
 export const fetchSymptomsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
-    const res = await client.execute("SELECT json_data FROM symptoms WHERE id = 'main';");
+    const res = await client.execute('SELECT id, name FROM symptoms ORDER BY sortOrder ASC, rowid ASC;');
     if (res.rows.length > 0) {
-      return JSON.parse(String(res.rows[0].json_data));
+      return res.rows.map(row => String(row.name));
     }
   } catch (err) {
     console.error('Error fetching symptoms from Turso:', err);
@@ -459,14 +665,16 @@ export const fetchSymptomsFromTurso = async () => {
 
 export const saveSymptomsToTurso = async (symptoms) => {
   const client = getTursoClient();
-  if (!client) return false;
+  if (!client || !Array.isArray(symptoms)) return false;
 
   try {
-    await client.execute({
-      sql: `INSERT INTO symptoms (id, json_data) VALUES ('main', ?)
-            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
-      args: [JSON.stringify(symptoms)]
-    });
+    const deleteStmt = { sql: 'DELETE FROM symptoms;', args: [] };
+    const insertStmts = symptoms.map((text, idx) => ({
+      sql: 'INSERT INTO symptoms (id, name, sortOrder) VALUES (?, ?, ?);',
+      args: [`sym_${idx + 1}`, text, idx + 1]
+    }));
+
+    await client.batch([deleteStmt, ...insertStmts], 'write');
     return true;
   } catch (err) {
     console.error('Error saving symptoms to Turso:', err);

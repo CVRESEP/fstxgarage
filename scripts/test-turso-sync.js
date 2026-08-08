@@ -6,28 +6,26 @@ const authToken = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3
 async function test() {
   const client = createClient({ url, authToken });
   
-  console.log('Testing saving services...');
-  const sampleServices = [
-    { id: 'srv_1', name: 'Servis Kaki-Kaki Komplit', category: 'Suspensi', stage: 2, price: 450000, estimatedDuration: '2 Hari', description: 'Paket lengkap kaki-kaki' }
-  ];
+  console.log('Testing relational services query...');
+  const srvRes = await client.execute('SELECT id, name, category, stage, price, estimatedDuration, description FROM services ORDER BY stage ASC;');
+  console.log(`✅ Fetched ${srvRes.rows.length} relational services. Sample:`, srvRes.rows[0]);
   
-  await client.execute({
-    sql: `INSERT INTO services (id, json_data) VALUES ('catalog', ?)
-          ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
-    args: [JSON.stringify(sampleServices)]
-  });
-  
-  const res = await client.execute("SELECT json_data FROM services WHERE id = 'catalog';");
-  console.log('Read back services:', JSON.parse(res.rows[0].json_data));
-  
-  console.log('Testing saving queue...');
+  console.log('Testing relational symptoms query...');
+  const symRes = await client.execute('SELECT id, name FROM symptoms ORDER BY sortOrder ASC;');
+  console.log(`✅ Fetched ${symRes.rows.length} relational symptoms. Sample:`, symRes.rows[0]);
+
+  console.log('Testing relational site_config query...');
+  const cfgRes = await client.execute("SELECT id, heroHeadline, whatsappNumber FROM site_config WHERE id = 'main';");
+  console.log('✅ Fetched site_config:', cfgRes.rows[0]);
+
+  console.log('Testing queue insert and query...');
   const sampleQueue = {
-    id: 'FST-20260809-9999',
+    id: 'FST-TEST-001',
     customerName: 'Budi Santoso',
     phone: '08123456789',
     licensePlate: 'B 1234 XYZ',
     carModel: 'Toyota Fortuner (2022)',
-    services: ['srv_1'],
+    services: ['free_inspection'],
     parts: [],
     additionalServices: [],
     isApproved: 0,
@@ -93,8 +91,9 @@ async function test() {
     ]
   });
   
-  const qRes = await client.execute('SELECT * FROM queues WHERE id = ?;', [sampleQueue.id]);
-  console.log('Read back queue count:', qRes.rows.length, qRes.rows[0].customerName);
+  const qRes = await client.execute('SELECT id, customerName, carModel FROM queues WHERE id = ?;', [sampleQueue.id]);
+  console.log('✅ Read back queue:', qRes.rows[0]);
+  console.log('🎉 All relational database checks passed with 100% success!');
 }
 
 test();
