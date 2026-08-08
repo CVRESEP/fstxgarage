@@ -1,4 +1,9 @@
-// FSTWORKS Local Storage & Mock Data Management System
+// FSTWORKS Data Storage & Turso Cloud Sync Management System
+import { 
+  saveQueueToTurso, 
+  saveSiteConfigToTurso, 
+  saveProductToTurso 
+} from './turso';
 
 export const STORAGE_KEY = 'FSTWORKS_QUEUE_DATA_V3';
 export const SERVICES_STORAGE_KEY = 'FSTWORKS_SERVICES_DATA_V1';
@@ -7,14 +12,8 @@ export const PRODUCTS_STORAGE_KEY = 'FSTWORKS_PRODUCTS_DATA_V1';
 export const SITE_CONFIG_STORAGE_KEY = 'FSTWORKS_SITE_CONFIG_V1';
 export const TESTIMONIALS_STORAGE_KEY = 'FSTWORKS_TESTIMONIALS_V1';
 
-export const INITIAL_PRODUCTS = [
-  { id: 'prd-1', code: 'PRD-001', name: 'Shockbreaker Depan Fortuner VRZ (Pair)', category: 'Suspensi', price: 1800000, stock: 10 },
-  { id: 'prd-2', code: 'PRD-002', name: 'Tierod & Long Tierod Civic Turbo (Set)', category: 'Kemudi', price: 650000, stock: 15 },
-  { id: 'prd-3', code: 'PRD-003', name: 'Bushing Arm Polyurethane Heavy Duty', category: 'Bushing', price: 350000, stock: 25 },
-  { id: 'prd-4', code: 'PRD-004', name: 'Ball Joint 555 Japan (Depan)', category: 'Ball Joint', price: 450000, stock: 20 },
-  { id: 'prd-5', code: 'PRD-005', name: 'Steering Rack Seal Kit OEM', category: 'Kemudi', price: 550000, stock: 8 },
-  { id: 'prd-6', code: 'PRD-006', name: 'Link Stabilizer Heavy Duty', category: 'Suspensi', price: 280000, stock: 18 }
-];
+// NO DUMMY DATA - Clean production defaults
+export const INITIAL_PRODUCTS = [];
 
 export const INITIAL_SITE_CONFIG = {
   heroBadge: 'Undercarriage Specialist',
@@ -32,26 +31,7 @@ export const INITIAL_SITE_CONFIG = {
   adminPin: '1234'
 };
 
-export const INITIAL_TESTIMONIALS = [
-  {
-    id: 1,
-    name: 'Bapak Aditia (Owner Fortuner VRZ)',
-    rating: 5,
-    comment: 'Masalah kaki-kaki di Fortuner saya yang bikin pusing akhirnya tuntas di FSTWORKS. Mekaniknya sangat paham detail, gratis inspeksi dulu baru tawarin estimasi yang jujur!'
-  },
-  {
-    id: 2,
-    name: 'Mas Farhan (Owner Civic Turbo)',
-    rating: 5,
-    comment: 'Fitur booking online sangat membantu! Datang sesuai jadwal ACC admin, mobil langsung ditangani tanpa nunggu berjam-jam. Recommended banget!'
-  },
-  {
-    id: 3,
-    name: 'Pak Rudi (Owner BMW E90)',
-    rating: 5,
-    comment: 'Spooring 3D laser-nya presisi banget, setir BMW saya yang tadinya miring sekarang lurus total. Hasil garansinya bikin tenang.'
-  }
-];
+export const INITIAL_TESTIMONIALS = [];
 
 export const INITIAL_SERVICES = [
   {
@@ -139,103 +119,12 @@ export const INITIAL_SYMPTOMS = [
 ];
 
 export const INITIAL_PITS = [
-  { id: 'PIT-1', name: 'Pit 1 - Heavy Suspension & Rack', mechanic: 'Mas Budi (Master Mechanic)', status: 'BUSY' },
-  { id: 'PIT-2', name: 'Pit 2 - Quick Shock & Bushing Press', mechanic: 'Mas Doni (Suspension Specialist)', status: 'BUSY' },
-  { id: 'PIT-3', name: 'Pit 3 - Spooring 3D Digital Laser', mechanic: 'Mas Rian (Alignment Expert)', status: 'AVAILABLE' }
+  { id: 'PIT-1', name: 'Pit 1 - Heavy Suspension & Rack', mechanic: 'Mechanic Master', status: 'AVAILABLE' },
+  { id: 'PIT-2', name: 'Pit 2 - Quick Shock & Bushing Press', mechanic: 'Suspension Specialist', status: 'AVAILABLE' },
+  { id: 'PIT-3', name: 'Pit 3 - Spooring 3D Digital Laser', mechanic: 'Alignment Expert', status: 'AVAILABLE' }
 ];
 
-export const INITIAL_QUEUES = [
-  {
-    id: 'FST-20260802-1001',
-    queueNumber: 'A-01',
-    customerName: 'Bapak Hendra',
-    phone: '081234567890',
-    carModel: 'Toyota Fortuner VRZ',
-    licensePlate: 'B 1988 FST',
-    bookingDate: '2026-08-02',
-    startDate: '2026-08-02',
-    durationDays: 5,
-    endDate: '2026-08-07',
-    isApproved: true,
-    bookingTime: '08:30',
-    services: ['shockbreaker_service', 'bushing_arm_replacement'],
-    assignedPit: 'PIT-1',
-    mechanic: 'Mas Budi',
-    status: 'PENGERJAAN',
-    estimatedCost: 600000,
-    notes: 'Geluduk di jalan berlubang, bagian depan kiri agak amblas.',
-    createdAt: '2026-08-02T08:15:00Z',
-    updatedAt: '2026-08-02T09:10:00Z'
-  },
-  {
-    id: 'FST-20260802-1002',
-    queueNumber: 'A-02',
-    customerName: 'Mas Rizky',
-    phone: '085711223344',
-    carModel: 'Honda Civic Turbo',
-    licensePlate: 'B 8080 CVC',
-    bookingDate: '2026-08-05',
-    startDate: '2026-08-05',
-    durationDays: 3,
-    endDate: '2026-08-08',
-    isApproved: true,
-    bookingTime: '10:00',
-    services: ['tierod_balljoint', 'spooring_balancing_3d'],
-    assignedPit: 'PIT-2',
-    mechanic: 'Mas Doni',
-    status: 'INSPEKSI',
-    estimatedCost: 400000,
-    notes: 'Setir terasa gejal-gejul saat kecepatan 80 km/jam.',
-    createdAt: '2026-08-02T09:45:00Z',
-    updatedAt: '2026-08-02T10:05:00Z'
-  },
-  {
-    id: 'FST-20260810-1003',
-    queueNumber: 'A-03',
-    customerName: 'Ibu Ratna',
-    phone: '081399887766',
-    carModel: 'Mitsubishi Xpander',
-    licensePlate: 'D 1234 XPD',
-    bookingDate: '2026-08-10',
-    startDate: '2026-08-10',
-    durationDays: 5,
-    endDate: '2026-08-15',
-    isApproved: true,
-    bookingTime: '11:30',
-    services: ['steering_rack', 'bushing_arm_replacement'],
-    assignedPit: 'PIT-1',
-    mechanic: 'Mas Budi',
-    status: 'PENGERJAAN',
-    estimatedCost: 1100000,
-    notes: 'Overhaul steering rack & penggantian bushing arm.',
-    createdAt: '2026-08-02T10:30:00Z',
-    updatedAt: '2026-08-02T10:30:00Z'
-  },
-  {
-    id: 'FST-20260816-1004',
-    queueNumber: 'A-04',
-    customerName: 'Mas Danang',
-    phone: '087855443322',
-    carModel: 'Subaru Impreza WRX',
-    licensePlate: 'B 555 WRX',
-    bookingDate: '2026-08-16',
-    startDate: '2026-08-16',
-    durationDays: 4,
-    endDate: '2026-08-20',
-    isApproved: true,
-    bookingTime: '13:30',
-    services: ['custom_manual_service'],
-    customManualText: 'Rakit custom coilover 32-step & ganti pillowball mount depan',
-    customManualPrice: 1850000,
-    assignedPit: 'PIT-1',
-    mechanic: 'Mas Budi',
-    status: 'BOOKING',
-    estimatedCost: 1850000,
-    notes: 'Permintaan Custom Manual Customer (Harga telah ditentukan Admin: Rp 1.850.000).',
-    createdAt: '2026-08-02T11:00:00Z',
-    updatedAt: '2026-08-02T11:00:00Z'
-  }
-];
+export const INITIAL_QUEUES = [];
 
 export const getStoredServices = () => {
   try {
@@ -245,7 +134,6 @@ export const getStoredServices = () => {
       return INITIAL_SERVICES;
     }
     const parsed = JSON.parse(data);
-    // Ensure every service has stage and duration synced if missing or old
     const stageMap = {
       'free_inspection': 1,
       'spooring_balancing_3d': 1,
@@ -275,7 +163,7 @@ export const saveServicesToStorage = (services) => {
   try {
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(services));
   } catch (error) {
-    console.error('Error saving services to localStorage:', error);
+    console.error('Error saving services:', error);
   }
 };
 
@@ -296,7 +184,7 @@ export const saveSymptomsToStorage = (symptoms) => {
   try {
     localStorage.setItem(SYMPTOMS_STORAGE_KEY, JSON.stringify(symptoms));
   } catch (error) {
-    console.error('Error saving symptoms to localStorage:', error);
+    console.error('Error saving symptoms:', error);
   }
 };
 
@@ -316,8 +204,9 @@ export const getStoredProducts = () => {
 export const saveProductsToStorage = (products) => {
   try {
     localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
+    (products || []).forEach(p => saveProductToTurso(p));
   } catch (error) {
-    console.error('Error saving products to localStorage:', error);
+    console.error('Error saving products:', error);
   }
 };
 
@@ -337,8 +226,9 @@ export const getStoredSiteConfig = () => {
 export const saveSiteConfigToStorage = (config) => {
   try {
     localStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(config));
+    saveSiteConfigToTurso(config);
   } catch (error) {
-    console.error('Error saving site config to localStorage:', error);
+    console.error('Error saving site config:', error);
   }
 };
 
@@ -359,7 +249,7 @@ export const saveTestimonialsToStorage = (testimonials) => {
   try {
     localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(testimonials));
   } catch (error) {
-    console.error('Error saving testimonials to localStorage:', error);
+    console.error('Error saving testimonials:', error);
   }
 };
 
@@ -380,7 +270,7 @@ export const getStoredQueues = () => {
     }
     return updated;
   } catch (error) {
-    console.error('Error reading localStorage queues:', error);
+    console.error('Error reading queues:', error);
     return INITIAL_QUEUES;
   }
 };
@@ -388,8 +278,9 @@ export const getStoredQueues = () => {
 export const saveQueuesToStorage = (queues) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(queues));
+    (queues || []).forEach(q => saveQueueToTurso(q));
   } catch (error) {
-    console.error('Error saving queues to localStorage:', error);
+    console.error('Error saving queues:', error);
   }
 };
 
@@ -399,7 +290,7 @@ export const generateBookingId = () => {
   return `FST-${dateStr}-${randomNum}`;
 };
 
-export const generateQueueNumber = (existingQueues) => {
+export const generateQueueNumber = (existingQueues = []) => {
   const today = new Date().toISOString().slice(0, 10);
   const todayQueues = existingQueues.filter(q => q.bookingDate === today);
   const nextNum = todayQueues.length + 1;
@@ -420,10 +311,8 @@ export const STATUS_MAP = {
 export const HOLIDAYS_STORAGE_KEY = 'FSTWORKS_HOLIDAYS_V1';
 
 export const INITIAL_HOLIDAY_CONFIG = {
-  weeklyOff: [0], // 0 = Sunday (Minggu)
-  specificHolidays: [
-    { date: '2026-08-17', title: 'HUT RI (Hari Kemerdekaan)' }
-  ]
+  weeklyOff: [0], // 0 = Minggu
+  specificHolidays: []
 };
 
 export const getStoredHolidayConfig = () => {

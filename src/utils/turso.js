@@ -133,3 +133,190 @@ export const testTursoConnection = async (url, authToken) => {
     return { success: false, message: err.message || 'Gagal terhubung ke Turso DB.' };
   }
 };
+
+// --- CRUD OPERATIONS FOR TURSO DATABASE ---
+
+// 1. Queues CRUD
+export const fetchQueuesFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute('SELECT * FROM queues ORDER BY createdAt DESC;');
+    return res.rows.map(row => ({
+      id: String(row.id),
+      customerName: String(row.customerName || ''),
+      phone: String(row.phone || ''),
+      licensePlate: String(row.licensePlate || ''),
+      carModel: String(row.carModel || ''),
+      services: row.services ? JSON.parse(String(row.services)) : [],
+      parts: row.parts ? JSON.parse(String(row.parts)) : [],
+      additionalServices: row.additionalServices ? JSON.parse(String(row.additionalServices)) : [],
+      isApproved: Boolean(row.isApproved),
+      status: String(row.status || 'BOOKING'),
+      startDate: String(row.startDate || ''),
+      durationDays: Number(row.durationDays || 1),
+      endDate: String(row.endDate || ''),
+      estimatedCost: Number(row.estimatedCost || 0),
+      customManualPrice: Number(row.customManualPrice || 0),
+      customManualText: String(row.customManualText || ''),
+      customStatusText: String(row.customStatusText || ''),
+      statusHistory: row.statusHistory ? JSON.parse(String(row.statusHistory)) : [],
+      createdAt: String(row.createdAt || new Date().toISOString()),
+      updatedAt: String(row.updatedAt || new Date().toISOString())
+    }));
+  } catch (err) {
+    console.error('Error fetching queues from Turso:', err);
+    return null;
+  }
+};
+
+export const saveQueueToTurso = async (q) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO queues (
+        id, customerName, phone, licensePlate, carModel, services, parts, additionalServices, 
+        isApproved, status, startDate, durationDays, endDate, estimatedCost, customManualPrice, 
+        customManualText, customStatusText, statusHistory, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        customerName=excluded.customerName,
+        phone=excluded.phone,
+        licensePlate=excluded.licensePlate,
+        carModel=excluded.carModel,
+        services=excluded.services,
+        parts=excluded.parts,
+        additionalServices=excluded.additionalServices,
+        isApproved=excluded.isApproved,
+        status=excluded.status,
+        startDate=excluded.startDate,
+        durationDays=excluded.durationDays,
+        endDate=excluded.endDate,
+        estimatedCost=excluded.estimatedCost,
+        customManualPrice=excluded.customManualPrice,
+        customManualText=excluded.customManualText,
+        customStatusText=excluded.customStatusText,
+        statusHistory=excluded.statusHistory,
+        updatedAt=excluded.updatedAt;`,
+      args: [
+        q.id,
+        q.customerName || '',
+        q.phone || '',
+        q.licensePlate || '',
+        q.carModel || '',
+        JSON.stringify(q.services || []),
+        JSON.stringify(q.parts || []),
+        JSON.stringify(q.additionalServices || []),
+        q.isApproved ? 1 : 0,
+        q.status || 'BOOKING',
+        q.startDate || '',
+        q.durationDays || 1,
+        q.endDate || '',
+        q.estimatedCost || 0,
+        q.customManualPrice || 0,
+        q.customManualText || '',
+        q.customStatusText || '',
+        JSON.stringify(q.statusHistory || []),
+        q.createdAt || new Date().toISOString(),
+        q.updatedAt || new Date().toISOString()
+      ]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving queue to Turso:', err);
+    return false;
+  }
+};
+
+export const deleteQueueFromTurso = async (id) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: 'DELETE FROM queues WHERE id = ?;',
+      args: [id]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error deleting queue from Turso:', err);
+    return false;
+  }
+};
+
+// 2. Site Config CRUD
+export const fetchSiteConfigFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute("SELECT config_json FROM site_config WHERE id = 'main';");
+    if (res.rows.length > 0) {
+      return JSON.parse(String(res.rows[0].config_json));
+    }
+  } catch (err) {
+    console.error('Error fetching site config from Turso:', err);
+  }
+  return null;
+};
+
+export const saveSiteConfigToTurso = async (config) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO site_config (id, config_json) VALUES ('main', ?)
+            ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json;`,
+      args: [JSON.stringify(config)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving site config to Turso:', err);
+    return false;
+  }
+};
+
+// 3. Products CRUD
+export const fetchProductsFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute('SELECT * FROM products ORDER BY name ASC;');
+    return res.rows.map(row => ({
+      id: String(row.id),
+      code: String(row.code || ''),
+      name: String(row.name || ''),
+      category: String(row.category || ''),
+      price: Number(row.price || 0),
+      stock: Number(row.stock || 0)
+    }));
+  } catch (err) {
+    console.error('Error fetching products from Turso:', err);
+    return null;
+  }
+};
+
+export const saveProductToTurso = async (product) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO products (id, code, name, category, price, stock)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              code=excluded.code, name=excluded.name, category=excluded.category,
+              price=excluded.price, stock=excluded.stock;`,
+      args: [product.id, product.code || '', product.name || '', product.category || '', product.price || 0, product.stock || 0]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving product to Turso:', err);
+    return false;
+  }
+};

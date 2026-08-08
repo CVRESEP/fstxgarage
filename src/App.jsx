@@ -18,6 +18,10 @@ import {
   getStoredTestimonials,
   saveTestimonialsToStorage
 } from './utils/storage';
+import { 
+  fetchQueuesFromTurso, 
+  fetchSiteConfigFromTurso 
+} from './utils/turso';
 
 export default function App() {
   const [activeRole, setActiveRole] = useState('customer'); // Default: Clean Customer View
@@ -27,6 +31,21 @@ export default function App() {
   const [testimonials, setTestimonials] = useState(getStoredTestimonials());
   const [activeSPKQueue, setActiveSPKQueue] = useState(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState('');
+
+  // Load live data from Turso Edge DB on mount if connected
+  useEffect(() => {
+    const loadTursoData = async () => {
+      const tursoQueues = await fetchQueuesFromTurso();
+      if (tursoQueues && Array.isArray(tursoQueues)) {
+        setQueues(tursoQueues);
+      }
+      const tursoConfig = await fetchSiteConfigFromTurso();
+      if (tursoConfig) {
+        setSiteConfig(tursoConfig);
+      }
+    };
+    loadTursoData();
+  }, []);
 
   // Check URL hash for direct admin access e.g., #admin
   useEffect(() => {
