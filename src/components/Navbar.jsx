@@ -1,13 +1,17 @@
 import React, { useState } from 'react';
 import { Wrench, Calendar as CalendarIcon, Search, Calculator, ShieldCheck, Menu, X, LogOut, ClipboardList } from 'lucide-react';
 
-export default function Navbar({ activeRole, setActiveRole, activeTab, setActiveTab, queues }) {
+export default function Navbar({ activeRole, setActiveRole, activeTab, setActiveTab, queues, onOpenAdminLogin }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavClick = (tab) => {
     if (tab === 'admin') {
-      setActiveRole('admin');
-      setActiveTab('admin');
+      if (onOpenAdminLogin) {
+        onOpenAdminLogin();
+      } else {
+        setActiveRole('admin');
+        setActiveTab('admin');
+      }
     } else {
       setActiveTab(tab);
     }
@@ -186,7 +190,10 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
 
                 <button
                   className="btn-secondary btn-sm"
-                  onClick={() => { setActiveRole('admin'); setActiveTab('admin'); }}
+                  onClick={() => {
+                    if (onOpenAdminLogin) onOpenAdminLogin();
+                    else { setActiveRole('admin'); setActiveTab('admin'); }
+                  }}
                   style={{ marginLeft: '0.5rem', borderStyle: 'dashed', borderColor: '#f59e0b', color: '#f59e0b', fontWeight: 700 }}
                 >
                   <ShieldCheck size={15} /> Login Admin
@@ -246,7 +253,11 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
                 </button>
                 <button
                   className="btn-secondary btn-sm"
-                  onClick={() => { setActiveRole('admin'); setActiveTab('admin'); setMobileMenuOpen(false); }}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (onOpenAdminLogin) onOpenAdminLogin();
+                    else { setActiveRole('admin'); setActiveTab('admin'); }
+                  }}
                   style={{ borderStyle: 'dashed', borderColor: '#f59e0b', color: '#f59e0b' }}
                 >
                   <ShieldCheck size={16} /> Login Admin
@@ -369,7 +380,10 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
           </button>
 
           <button
-            onClick={() => { setActiveRole('admin'); setActiveTab('admin'); }}
+            onClick={() => {
+              if (onOpenAdminLogin) onOpenAdminLogin();
+              else { setActiveRole('admin'); setActiveTab('admin'); }
+            }}
             style={{
               background: 'none',
               border: 'none',

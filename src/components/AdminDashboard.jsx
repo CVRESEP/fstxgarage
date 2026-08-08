@@ -9,7 +9,13 @@ import {
   calculateWorkdayEndDate
 } from '../utils/storage';
 import { 
-  deleteQueueFromTurso, deleteProductFromTurso
+  deleteQueueFromTurso, 
+  deleteProductFromTurso,
+  getStoredTursoCredentials,
+  saveTursoCredentials,
+  resetTursoClient,
+  testTursoConnection,
+  initTursoSchema
 } from '../utils/turso';
 import { speakQueueCall } from '../utils/audio';
 import { 
@@ -39,7 +45,8 @@ export default function AdminDashboard({
   siteConfig, 
   setSiteConfig, 
   testimonials = [], 
-  setTestimonials 
+  setTestimonials,
+  onExitAdmin
 }) {
   const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [passcode, setPasscode] = useState('');
@@ -1045,6 +1052,24 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
           >
             ⚡ Masuk Langsung (Bypass)
           </button>
+          <button
+            type="button"
+            style={{ 
+              background: 'transparent', 
+              border: '1px solid rgba(255, 255, 255, 0.1)', 
+              color: '#94a3b8', 
+              padding: '0.65rem', 
+              borderRadius: '8px', 
+              fontSize: '0.8rem', 
+              cursor: 'pointer',
+              marginTop: '0.25rem'
+            }}
+            onClick={() => {
+              if (onExitAdmin) onExitAdmin();
+            }}
+          >
+            ← Kembali ke Beranda Customer
+          </button>
         </div>
       </div>
     );
@@ -1066,6 +1091,12 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
 
           <button className="btn-secondary" onClick={() => setIsAuthenticated(false)}>
             Kunci Dashboard
+          </button>
+
+          <button className="btn-secondary" onClick={() => {
+            if (onExitAdmin) onExitAdmin();
+          }}>
+            ← Keluar ke Beranda
           </button>
         </div>
       </div>

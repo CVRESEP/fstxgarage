@@ -8,6 +8,7 @@ import PriceEstimator from './components/PriceEstimator';
 import ServicesSection from './components/ServicesSection';
 import AdminDashboard from './components/AdminDashboard';
 import WorkOrderModal from './components/WorkOrderModal';
+import AdminLoginModal from './components/AdminLoginModal';
 import Footer from './components/Footer';
 
 import { 
@@ -52,6 +53,7 @@ export default function App() {
   const [holidays, setHolidays] = useState(getStoredHolidayConfig());
   const [activeSPKQueue, setActiveSPKQueue] = useState(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState('');
+  const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
 
   // Load ALL live data from Turso Edge DB on mount
   useEffect(() => {
@@ -109,12 +111,14 @@ export default function App() {
     loadTursoData();
   }, []);
 
-  // Check URL hash for direct admin access e.g., #admin
+  // Check URL hash for direct admin access e.g., #admin or #login
   useEffect(() => {
     const handleHashCheck = () => {
       if (window.location.hash === '#admin') {
         setActiveRole('admin');
         setActiveTab('admin');
+      } else if (window.location.hash === '#login') {
+        setShowAdminLoginModal(true);
       }
     };
     handleHashCheck();
@@ -140,6 +144,21 @@ export default function App() {
     setActiveTab('booking');
   };
 
+  const handleAdminLoginSuccess = () => {
+    setActiveRole('admin');
+    setActiveTab('admin');
+    setShowAdminLoginModal(false);
+    window.location.hash = 'admin';
+  };
+
+  const handleExitAdminMode = () => {
+    setActiveRole('customer');
+    setActiveTab('home');
+    if (window.location.hash === '#admin' || window.location.hash === '#login') {
+      window.history.pushState("", document.title, window.location.pathname + window.location.search);
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
       
@@ -150,6 +169,7 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={setActiveTab} 
         queues={queues} 
+        onOpenAdminLogin={() => setShowAdminLoginModal(true)}
       />
 
       {/* Main Content View */}
@@ -219,9 +239,18 @@ export default function App() {
             setSiteConfig={setSiteConfig}
             testimonials={testimonials}
             setTestimonials={setTestimonials}
+            onExitAdmin={handleExitAdminMode}
           />
         )}
       </main>
+
+      {/* Admin Login Modal */}
+      <AdminLoginModal 
+        isOpen={showAdminLoginModal}
+        onClose={() => setShowAdminLoginModal(false)}
+        onLoginSuccess={handleAdminLoginSuccess}
+        siteConfig={siteConfig}
+      />
 
       {/* Printable SPK Modal */}
       {activeSPKQueue && (
@@ -236,14 +265,13 @@ export default function App() {
         siteConfig={siteConfig}
         onNavigate={(tab) => {
           if (tab === 'admin') {
-            setActiveRole('admin');
-            setActiveTab('admin');
-            window.location.hash = 'admin';
+            setShowAdminLoginModal(true);
           } else {
             setActiveRole('customer');
             setActiveTab(tab);
           }
         }}
+        onOpenAdminLogin={() => setShowAdminLoginModal(true)}
       />
 
     </div>

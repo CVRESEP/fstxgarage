@@ -1,7 +1,7 @@
 import React from 'react';
 import { MapPin, Phone, Clock, MessageSquare, ShieldCheck, Lock } from 'lucide-react';
 
-export default function Footer({ onNavigate, siteConfig }) {
+export default function Footer({ onNavigate, siteConfig, onOpenAdminLogin }) {
   return (
     <footer style={{
       background: 'rgba(8, 12, 20, 0.95)',
@@ -81,7 +81,7 @@ export default function Footer({ onNavigate, siteConfig }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', fontSize: '0.875rem' }}>
               <span onClick={() => onNavigate('booking')} style={{ cursor: 'pointer', color: '#f59e0b' }}>● Booking Antrian Online</span>
               <span onClick={() => onNavigate('tracker')} style={{ cursor: 'pointer', color: '#06b6d4' }}>● Cek Status Antrian Saya</span>
-              <span onClick={() => onNavigate('estimator')} style={{ cursor: 'pointer', color: '#cbd5e1' }}>● Kalkulator Estimasi Biaya</span>
+              <span onClick={() => onNavigate('estimation')} style={{ cursor: 'pointer', color: '#cbd5e1' }}>● Kalkulator Estimasi Biaya</span>
             </div>
           </div>
 
@@ -102,7 +102,10 @@ export default function Footer({ onNavigate, siteConfig }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
             <span>Presisi Suspensi, Kenyamanan Hakiki.</span>
             <span 
-              onClick={() => onNavigate('admin')} 
+              onClick={() => {
+                if (onOpenAdminLogin) onOpenAdminLogin();
+                else onNavigate('admin');
+              }} 
               style={{ cursor: 'pointer', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.2rem' }}
               title="Akses Internal Staff Workshop"
             >
