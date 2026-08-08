@@ -59,6 +59,14 @@ async function main() {
       `CREATE TABLE IF NOT EXISTS holidays (
         id TEXT PRIMARY KEY,
         config_json TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS testimonials (
+        id TEXT PRIMARY KEY,
+        json_data TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS symptoms (
+        id TEXT PRIMARY KEY,
+        json_data TEXT
       );`
     ], 'write');
 

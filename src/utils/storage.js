@@ -2,7 +2,11 @@
 import { 
   saveQueueToTurso, 
   saveSiteConfigToTurso, 
-  saveProductToTurso 
+  saveProductToTurso,
+  saveServicesToTurso,
+  saveHolidaysToTurso,
+  saveTestimonialsToTurso,
+  saveSymptomsToTurso
 } from './turso';
 
 export const STORAGE_KEY = 'FSTWORKS_QUEUE_DATA_V3';
@@ -162,6 +166,7 @@ export const getStoredServices = () => {
 export const saveServicesToStorage = (services) => {
   try {
     localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(services));
+    saveServicesToTurso(services);
   } catch (error) {
     console.error('Error saving services:', error);
   }
@@ -183,6 +188,7 @@ export const getStoredSymptoms = () => {
 export const saveSymptomsToStorage = (symptoms) => {
   try {
     localStorage.setItem(SYMPTOMS_STORAGE_KEY, JSON.stringify(symptoms));
+    saveSymptomsToTurso(symptoms);
   } catch (error) {
     console.error('Error saving symptoms:', error);
   }
@@ -248,6 +254,7 @@ export const getStoredTestimonials = () => {
 export const saveTestimonialsToStorage = (testimonials) => {
   try {
     localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(testimonials));
+    saveTestimonialsToTurso(testimonials);
   } catch (error) {
     console.error('Error saving testimonials:', error);
   }
@@ -331,6 +338,7 @@ export const getStoredHolidayConfig = () => {
 export const saveHolidayConfigToStorage = (config) => {
   try {
     localStorage.setItem(HOLIDAYS_STORAGE_KEY, JSON.stringify(config));
+    saveHolidaysToTurso(config);
   } catch (error) {
     console.error('Error saving holiday config:', error);
   }

@@ -90,12 +90,7 @@ export const initTursoSchema = async () => {
       );`,
       `CREATE TABLE IF NOT EXISTS services (
         id TEXT PRIMARY KEY,
-        name TEXT,
-        category TEXT,
-        price REAL,
-        duration TEXT,
-        description TEXT,
-        stage INTEGER
+        json_data TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,
@@ -112,10 +107,18 @@ export const initTursoSchema = async () => {
       `CREATE TABLE IF NOT EXISTS holidays (
         id TEXT PRIMARY KEY,
         config_json TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS testimonials (
+        id TEXT PRIMARY KEY,
+        json_data TEXT
+      );`,
+      `CREATE TABLE IF NOT EXISTS symptoms (
+        id TEXT PRIMARY KEY,
+        json_data TEXT
       );`
     ], 'write');
 
-    console.log('✅ Turso LibSQL database tables initialized successfully!');
+    console.log('✅ All 7 Turso database tables initialized successfully!');
     return true;
   } catch (err) {
     console.error('❌ Error initializing Turso DB schema:', err);
@@ -134,7 +137,7 @@ export const testTursoConnection = async (url, authToken) => {
   }
 };
 
-// --- CRUD OPERATIONS FOR TURSO DATABASE ---
+// --- COMPLETE DATA CRUD OPERATIONS FOR TURSO CLOUD DATABASE ---
 
 // 1. Queues CRUD
 export const fetchQueuesFromTurso = async () => {
@@ -317,6 +320,154 @@ export const saveProductToTurso = async (product) => {
     return true;
   } catch (err) {
     console.error('Error saving product to Turso:', err);
+    return false;
+  }
+};
+
+export const deleteProductFromTurso = async (id) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: 'DELETE FROM products WHERE id = ?;',
+      args: [id]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error deleting product from Turso:', err);
+    return false;
+  }
+};
+
+// 4. Services CRUD
+export const fetchServicesFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute("SELECT json_data FROM services WHERE id = 'catalog';");
+    if (res.rows.length > 0) {
+      return JSON.parse(String(res.rows[0].json_data));
+    }
+  } catch (err) {
+    console.error('Error fetching services from Turso:', err);
+  }
+  return null;
+};
+
+export const saveServicesToTurso = async (services) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO services (id, json_data) VALUES ('catalog', ?)
+            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
+      args: [JSON.stringify(services)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving services to Turso:', err);
+    return false;
+  }
+};
+
+// 5. Holidays CRUD
+export const fetchHolidaysFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute("SELECT config_json FROM holidays WHERE id = 'main';");
+    if (res.rows.length > 0) {
+      return JSON.parse(String(res.rows[0].config_json));
+    }
+  } catch (err) {
+    console.error('Error fetching holidays from Turso:', err);
+  }
+  return null;
+};
+
+export const saveHolidaysToTurso = async (config) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO holidays (id, config_json) VALUES ('main', ?)
+            ON CONFLICT(id) DO UPDATE SET config_json=excluded.config_json;`,
+      args: [JSON.stringify(config)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving holidays to Turso:', err);
+    return false;
+  }
+};
+
+// 6. Testimonials CRUD
+export const fetchTestimonialsFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute("SELECT json_data FROM testimonials WHERE id = 'main';");
+    if (res.rows.length > 0) {
+      return JSON.parse(String(res.rows[0].json_data));
+    }
+  } catch (err) {
+    console.error('Error fetching testimonials from Turso:', err);
+  }
+  return null;
+};
+
+export const saveTestimonialsToTurso = async (testimonials) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO testimonials (id, json_data) VALUES ('main', ?)
+            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
+      args: [JSON.stringify(testimonials)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving testimonials to Turso:', err);
+    return false;
+  }
+};
+
+// 7. Symptoms CRUD
+export const fetchSymptomsFromTurso = async () => {
+  const client = getTursoClient();
+  if (!client) return null;
+
+  try {
+    const res = await client.execute("SELECT json_data FROM symptoms WHERE id = 'main';");
+    if (res.rows.length > 0) {
+      return JSON.parse(String(res.rows[0].json_data));
+    }
+  } catch (err) {
+    console.error('Error fetching symptoms from Turso:', err);
+  }
+  return null;
+};
+
+export const saveSymptomsToTurso = async (symptoms) => {
+  const client = getTursoClient();
+  if (!client) return false;
+
+  try {
+    await client.execute({
+      sql: `INSERT INTO symptoms (id, json_data) VALUES ('main', ?)
+            ON CONFLICT(id) DO UPDATE SET json_data=excluded.json_data;`,
+      args: [JSON.stringify(symptoms)]
+    });
+    return true;
+  } catch (err) {
+    console.error('Error saving symptoms to Turso:', err);
     return false;
   }
 };
