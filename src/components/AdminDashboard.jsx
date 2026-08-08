@@ -1015,23 +1015,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
           <h2 style={{ fontSize: '1.5rem', color: '#f4f4f5', margin: 0, fontWeight: 700 }}>Admin Dashboard</h2>
         </div>
 
-        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <button 
-            onClick={() => setShowTursoModal(true)}
-            className="btn-secondary"
-            style={{ 
-              background: tursoEnabled ? 'rgba(16, 185, 129, 0.15)' : 'rgba(148, 163, 184, 0.15)', 
-              borderColor: tursoEnabled ? '#10b981' : '#64748b',
-              color: tursoEnabled ? '#34d399' : '#cbd5e1',
-              fontWeight: 700,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.4rem'
-            }}
-          >
-            <Database size={16} /> Database Turso ({tursoEnabled ? 'Connected' : 'Offline'})
-          </button>
-
+        <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
           <button className="btn-primary" onClick={() => setShowAddWalkin(true)}>
             <Plus size={18} /> Customer Walk-In
           </button>
@@ -2992,111 +2976,6 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                 </button>
                 <button type="submit" className="btn-primary" style={{ flex: 2, justifyContent: 'center' }}>
                   {editingProduct ? 'Simpan Perubahan' : 'Tambah Ke Katalog'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* MODAL 7: PENGATURAN DATABASE TURSO CLOUD */}
-      {showTursoModal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 220, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1rem' }}>
-          <div className="glass-panel" style={{ width: '100%', maxWidth: '600px', maxHeight: '90vh', overflowY: 'auto', padding: '2rem', background: '#0f172a' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h3 style={{ color: '#38bdf8', fontSize: '1.25rem', margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Database size={22} color="#38bdf8" /> Pengaturan Database Turso (Edge SQLite)
-              </h3>
-              <button onClick={() => setShowTursoModal(false)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer' }}>
-                <X size={20} />
-              </button>
-            </div>
-
-            <p style={{ fontSize: '0.85rem', color: '#94a3b8', marginBottom: '1.25rem' }}>
-              Koneksikan FSTWORKS ke database cloud <strong>Turso (libSQL)</strong> untuk sinkronisasi data riil multi-perangkat. Jika tidak dikoneksikan, sistem otomatis menggunakan <strong>LocalStorage (Offline Mode)</strong>.
-            </p>
-
-            {tursoStatus && (
-              <div style={{ 
-                background: tursoStatus.type === 'success' ? 'rgba(16, 185, 129, 0.15)' : tursoStatus.type === 'info' ? 'rgba(56, 189, 248, 0.15)' : 'rgba(239, 68, 68, 0.15)',
-                border: `1px solid ${tursoStatus.type === 'success' ? '#10b981' : tursoStatus.type === 'info' ? '#38bdf8' : '#ef4444'}`,
-                color: tursoStatus.type === 'success' ? '#34d399' : tursoStatus.type === 'info' ? '#38bdf8' : '#f87171',
-                padding: '0.75rem 1rem',
-                borderRadius: '8px',
-                fontSize: '0.85rem',
-                marginBottom: '1.25rem'
-              }}>
-                {tursoStatus.text}
-              </div>
-            )}
-
-            <form onSubmit={handleSaveTursoSettings}>
-              <div className="form-group" style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Turso Database URL (libsql://...)</label>
-                <input 
-                  type="text" 
-                  className="form-control"
-                  placeholder="libsql://nama-db-username.turso.io"
-                  value={tursoUrl}
-                  onChange={(e) => setTursoUrl(e.target.value)}
-                />
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  Dapatkan dari dashboard Turso (turso db show &lt;db-name&gt; --url) atau dari file .env (VITE_TURSO_DATABASE_URL)
-                </span>
-              </div>
-
-              <div className="form-group" style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label">Turso Auth Token</label>
-                <input 
-                  type="password" 
-                  className="form-control"
-                  placeholder="JWT Auth Token dari Turso"
-                  value={tursoToken}
-                  onChange={(e) => setTursoToken(e.target.value)}
-                />
-                <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                  Dapatkan token via terminal (`turso db tokens create &lt;db-name&gt;`)
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', background: 'rgba(255,255,255,0.04)', padding: '0.75rem 1rem', borderRadius: '8px', marginBottom: '1.5rem' }}>
-                <input 
-                  type="checkbox" 
-                  id="enableTurso"
-                  checked={tursoEnabled}
-                  onChange={(e) => setTursoEnabled(e.target.checked)}
-                  style={{ width: '18px', height: '18px', cursor: 'pointer' }}
-                />
-                <label htmlFor="enableTurso" style={{ color: '#f8fafc', fontSize: '0.9rem', cursor: 'pointer', fontWeight: 600 }}>
-                  Aktifkan Koneksi Database Cloud Turso
-                </label>
-              </div>
-
-              <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <button 
-                  type="button" 
-                  onClick={handleTestTurso}
-                  className="btn-secondary"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                >
-                  ⚡ Test Koneksi
-                </button>
-
-                <button 
-                  type="button" 
-                  onClick={handleInitTursoSchema}
-                  className="btn-secondary"
-                  style={{ flex: 1, justifyContent: 'center', background: 'rgba(6, 182, 212, 0.15)', borderColor: '#06b6d4', color: '#38bdf8' }}
-                >
-                  🛠️ Buat Skema Tabel
-                </button>
-
-                <button 
-                  type="submit" 
-                  className="btn-primary"
-                  style={{ flex: 1.5, justifyContent: 'center', background: '#38bdf8', color: '#090d16', fontWeight: 800 }}
-                >
-                  Simpan Konfigurasi
                 </button>
               </div>
             </form>
