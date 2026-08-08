@@ -5,7 +5,12 @@ export default function Navbar({ activeRole, setActiveRole, activeTab, setActive
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavClick = (tab) => {
-    setActiveTab(tab);
+    if (tab === 'admin') {
+      setActiveRole('admin');
+      setActiveTab('admin');
+    } else {
+      setActiveTab(tab);
+    }
     setMobileMenuOpen(false);
   };
 

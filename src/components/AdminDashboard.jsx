@@ -41,7 +41,7 @@ export default function AdminDashboard({
   testimonials = [], 
   setTestimonials 
 }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(true);
   const [passcode, setPasscode] = useState('');
   const [activeAdminTab, setActiveAdminTab] = useState('acc_pending'); // 'acc_pending', 'active_progress', 'financial_report', 'services', 'symptoms', 'cms'
   const [searchFilter, setSearchFilter] = useState('');
