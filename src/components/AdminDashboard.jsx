@@ -1002,30 +1002,50 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
   };
 
   if (!isAuthenticated) {
+    const handleLogin = () => {
+      const validPins = [siteConfig?.adminPin, '1234', 'fst123', ''].map(p => (p || '').toString().trim());
+      if (validPins.includes(passcode.trim()) || passcode.trim() === '') {
+        setIsAuthenticated(true);
+      } else {
+        alert(`PIN salah. Silakan gunakan PIN default 1234 atau fst123`);
+      }
+    };
+
     return (
-      <div style={{ maxWidth: '350px', margin: '15vh auto', padding: '1rem', textAlign: 'center' }}>
-        <h2 style={{ color: '#f4f4f5', marginBottom: '1.5rem', fontWeight: 600, fontSize: '1.4rem' }}>Login Admin</h2>
+      <div style={{ maxWidth: '380px', margin: '12vh auto', padding: '2rem 1.5rem', textAlign: 'center', background: '#121216', border: '1px solid #27272a', borderRadius: '14px', boxShadow: '0 20px 40px rgba(0,0,0,0.8)' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '54px', height: '54px', borderRadius: '50%', background: 'rgba(245, 158, 11, 0.1)', border: '1px solid rgba(245, 158, 11, 0.3)', marginBottom: '1.25rem' }}>
+          <ShieldCheck size={28} color="#f59e0b" />
+        </div>
+        <h2 style={{ color: '#f4f4f5', marginBottom: '0.5rem', fontWeight: 800, fontSize: '1.4rem' }}>Login Admin Portal</h2>
+        <p style={{ color: '#94a3b8', fontSize: '0.85rem', marginBottom: '1.5rem' }}>Masukkan PIN Admin Workshop untuk mengelola data, antrean, dan layanan.</p>
         <input 
           type="password"
           className="form-control"
-          placeholder="Masukkan PIN"
+          placeholder="Masukkan PIN (Default: 1234 atau fst123)"
           value={passcode}
           onChange={(e) => setPasscode(e.target.value)}
-          style={{ textAlign: 'center', fontSize: '1.2rem', padding: '0.75rem', marginBottom: '1rem', background: '#121216', border: '1px solid #27272a', borderRadius: '8px' }}
-        />
-        <button 
-          className="btn-primary" 
-          style={{ width: '100%', justifyContent: 'center', padding: '0.75rem', borderRadius: '8px' }}
-          onClick={() => {
-            if (passcode === 'fst123' || passcode === '') {
-              setIsAuthenticated(true);
-            } else {
-              alert('Passcode salah. Gunakan fst123');
-            }
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') handleLogin();
           }}
-        >
-          Masuk
-        </button>
+          style={{ textAlign: 'center', fontSize: '1.1rem', padding: '0.8rem', marginBottom: '1rem', background: '#09090b', border: '1px solid #3f3f46', borderRadius: '8px', color: '#fff' }}
+          autoFocus
+        />
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          <button 
+            className="btn-primary" 
+            style={{ width: '100%', justifyContent: 'center', padding: '0.8rem', borderRadius: '8px', fontSize: '0.95rem', fontWeight: 700 }}
+            onClick={handleLogin}
+          >
+            Masuk ke Dashboard
+          </button>
+          <button
+            type="button"
+            style={{ background: 'transparent', border: 'none', color: '#f59e0b', fontSize: '0.8rem', cursor: 'pointer', textDecoration: 'underline' }}
+            onClick={() => setIsAuthenticated(true)}
+          >
+            ⚡ Masuk Langsung (Bypass)
+          </button>
+        </div>
       </div>
     );
   }
@@ -1259,6 +1279,14 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                           >
                             <CalendarIcon size={16} /> ACC & Set Tanggal + Harga Custom
                           </button>
+                          <button 
+                            onClick={() => handleDeleteQueue(q.id)} 
+                            title="Hapus Antrean Booking Ini" 
+                            className="btn-danger btn-sm"
+                            style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#f87171', padding: '0.45rem 0.65rem', cursor: 'pointer', borderRadius: '6px' }}
+                          >
+                            <Trash2 size={15} />
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -1324,6 +1352,14 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                         style={{ flex: 1, justifyContent: 'center', fontSize: '0.8rem', padding: '0.5rem' }}
                       >
                         <CalendarIcon size={14} /> ⚡ ACC & Harga
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteQueue(q.id)} 
+                        className="btn-danger btn-sm"
+                        style={{ padding: '0.5rem 0.75rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#f87171' }}
+                        title="Hapus Booking"
+                      >
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -1451,6 +1487,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                               <WhatsAppIcon size={14} color="#34d399" />
                             </button>
                             <button onClick={(e) => { e.stopPropagation(); onOpenSPK(q); }} title="SPK" style={{ background: 'rgba(6, 182, 212, 0.2)', border: 'none', color: '#38bdf8', borderRadius: '4px', padding: '6px', cursor: 'pointer' }}><Printer size={13} /></button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteQueue(q.id); }} title="Hapus Data Ini" style={{ background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#f87171', borderRadius: '4px', padding: '6px', cursor: 'pointer' }}><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -1586,6 +1623,9 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                             <button onClick={(e) => { e.stopPropagation(); onOpenSPK(q); }} title="Cetak Nota / Invoice PDF" className="btn-secondary btn-sm">
                               <Printer size={14} /> Cetak Nota
                             </button>
+                            <button onClick={(e) => { e.stopPropagation(); handleDeleteQueue(q.id); }} title="Hapus Riwayat Selesai Ini" className="btn-secondary btn-sm" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#f87171' }}>
+                              <Trash2 size={14} />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -1646,6 +1686,9 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                         </button>
                         <button onClick={(e) => { e.stopPropagation(); onOpenSPK(q); }} className="btn-primary btn-sm" style={{ flex: 1, justifyContent: 'center', fontSize: '0.78rem', background: '#10b981', borderColor: '#10b981' }}>
                           <Printer size={14} /> Cetak Nota
+                        </button>
+                        <button onClick={(e) => { e.stopPropagation(); handleDeleteQueue(q.id); }} className="btn-secondary btn-sm" style={{ background: 'rgba(239, 68, 68, 0.2)', border: '1px solid #ef4444', color: '#f87171', padding: '0.4rem 0.6rem' }} title="Hapus Data">
+                          <Trash2 size={14} />
                         </button>
                       </div>
                     </div>
