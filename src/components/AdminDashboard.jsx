@@ -6,7 +6,9 @@ import {
   getStoredSymptoms, saveSymptomsToStorage,
   getStoredProducts, saveProductsToStorage,
   getStoredSiteConfig,
-  calculateWorkdayEndDate
+  calculateWorkdayEndDate,
+  calculateActualWorkDuration,
+  parseDateToTimestamp
 } from '../utils/storage';
 import { 
   deleteQueueFromTurso, 
@@ -487,11 +489,24 @@ export default function AdminDashboard({
     const updated = queues.map(q => {
       if (q.id === queueId) {
         const existingHistory = q.statusHistory || [];
+        let actualDurationDays = q.durationDays || 1;
+
+        if (newStatus === 'SELESAI') {
+          const startVal = q.startDate || q.bookingDate || todayDateStr;
+          const startTs = parseDateToTimestamp(startVal);
+          const endTs = parseDateToTimestamp(todayDateStr);
+          if (startTs && endTs) {
+            const diffDays = Math.round((endTs - startTs) / (1000 * 60 * 60 * 24));
+            actualDurationDays = diffDays <= 0 ? 1 : diffDays;
+          }
+        }
+
         updatedQueueObj = { 
           ...q, 
           status: newStatus, 
           updatedAt: nowIso,
           endDate: newStatus === 'SELESAI' ? todayDateStr : (q.endDate || todayDateStr),
+          durationDays: newStatus === 'SELESAI' ? actualDurationDays : (q.durationDays || 1),
           completedAt: newStatus === 'SELESAI' ? nowIso : (q.completedAt || null),
           statusHistory: [updatedHistoryItem, ...existingHistory]
         };
@@ -873,7 +888,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
     const rowsHtml = list.map((q, idx) => {
       const startDate = q.startDate || q.bookingDate || '-';
       const endDate = getQueueCompletedDate(q);
-      const duration = `${q.durationDays || 1} Hari`;
+      const duration = calculateActualWorkDuration(q);
       const costStr = formatCurrency(calculateQueueTotalCost(q));
 
       const servicesText = q.services && q.services.length > 0
@@ -1667,7 +1682,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                   filterListBySearch(completedQueues).map((q, idx) => {
                     const startDateStr = q.startDate || q.bookingDate || '-';
                     const endDateStr = getQueueCompletedDate(q);
-                    const durationText = `${q.durationDays || 1} Hari`;
+                    const durationText = calculateActualWorkDuration(q);
 
                     return (
                       <tr 
@@ -1758,7 +1773,7 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
                 {filterListBySearch(completedQueues).map((q) => {
                   const startDateStr = q.startDate || q.bookingDate || '-';
                   const endDateStr = getQueueCompletedDate(q);
-                  const durationText = `${q.durationDays || 1} Hari`;
+                  const durationText = calculateActualWorkDuration(q);
 
                   return (
                     <div 
@@ -2838,14 +2853,18 @@ Terima kasih telah melakukan perawatan & perbaikan di *FSTWORKS Home Workshop*! 
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '6px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem', marginBottom: '1.5rem', background: 'rgba(255,255,255,0.03)', padding: '0.75rem', borderRadius: '6px' }}>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Masuk / Booking</label>
-                <div style={{ color: '#fff', fontWeight: 600 }}>{selectedRowDetail.startDate || selectedRowDetail.bookingDate || '-'}</div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Masuk</label>
+                <div style={{ color: '#fff', fontWeight: 600, fontSize: '0.85rem' }}>{selectedRowDetail.startDate || selectedRowDetail.bookingDate || '-'}</div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Selesai / Keluar</label>
-                <div style={{ color: '#34d399', fontWeight: 700 }}>{getQueueCompletedDate(selectedRowDetail)}</div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Tanggal Keluar</label>
+                <div style={{ color: '#34d399', fontWeight: 700, fontSize: '0.85rem' }}>{getQueueCompletedDate(selectedRowDetail)}</div>
+              </div>
+              <div>
+                <label style={{ fontSize: '0.75rem', color: '#94a3b8' }}>Lama Pengerjaan</label>
+                <div style={{ color: '#fbbf24', fontWeight: 700, fontSize: '0.85rem' }}>{calculateActualWorkDuration(selectedRowDetail)}</div>
               </div>
             </div>
 

@@ -170,7 +170,8 @@ export const getStoredQueues = () => {
 
     const holConfig = getStoredHolidayConfig();
     const updated = parsed.map(q => {
-      if (q.startDate && q.durationDays) {
+      // For active / unfinished queues, calculate projected workday end date
+      if (q.startDate && q.durationDays && q.status !== 'SELESAI') {
         const correctEnd = calculateWorkdayEndDate(q.startDate, q.durationDays, holConfig);
         return { ...q, endDate: correctEnd };
       }
@@ -181,6 +182,86 @@ export const getStoredQueues = () => {
     console.error('Error reading queues:', error);
     return [];
   }
+};
+
+// Helper to parse multiple date formats (ISO YYYY-MM-DD, Indonesian formatted date, DD/MM/YYYY)
+export const parseDateToTimestamp = (dateVal) => {
+  if (!dateVal || dateVal === '-') return null;
+  if (dateVal instanceof Date) return dateVal.getTime();
+
+  const str = String(dateVal).trim();
+
+  const indoMonths = {
+    'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'mei': 4, 'jun': 5,
+    'jul': 6, 'agu': 7, 'agt': 7, 'sep': 8, 'okt': 9, 'nov': 10, 'des': 11,
+    'januari': 0, 'februari': 1, 'maret': 2, 'april': 3, 'juni': 5,
+    'juli': 6, 'agustus': 7, 'september': 8, 'oktober': 9, 'november': 10, 'desember': 11
+  };
+
+  // 1. Pattern: "09 Agu 2026", "9 Agu 2026", "09 Agu 2026, 01:57 WIB", "09 Agustus 2026"
+  const dmyMatch = str.match(/^(\d{1,2})\s+([a-zA-Z]+)\s+(\d{4})/);
+  if (dmyMatch) {
+    const day = parseInt(dmyMatch[1], 10);
+    const monthKey = dmyMatch[2].toLowerCase().slice(0, 3);
+    const year = parseInt(dmyMatch[3], 10);
+    const month = indoMonths[monthKey] !== undefined ? indoMonths[monthKey] : 0;
+    return new Date(year, month, day).getTime();
+  }
+
+  // 2. Pattern: "DD/MM/YYYY"
+  const slashMatch = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (slashMatch) {
+    const day = parseInt(slashMatch[1], 10);
+    const month = parseInt(slashMatch[2], 10) - 1;
+    const year = parseInt(slashMatch[3], 10);
+    return new Date(year, month, day).getTime();
+  }
+
+  // 3. Pattern: YYYY-MM-DD
+  const isoMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (isoMatch) {
+    const year = parseInt(isoMatch[1], 10);
+    const month = parseInt(isoMatch[2], 10) - 1;
+    const day = parseInt(isoMatch[3], 10);
+    return new Date(year, month, day).getTime();
+  }
+
+  const parsed = Date.parse(str);
+  return isNaN(parsed) ? null : parsed;
+};
+
+// Calculate actual duration in days dynamically between entry date (startDate/bookingDate) and exit date (endDate/SELESAI statusHistory)
+export const calculateActualWorkDuration = (queue) => {
+  if (!queue) return '1 Hari';
+
+  const startVal = queue.startDate || queue.bookingDate || queue.createdAt;
+  
+  let endVal = queue.endDate;
+  if (queue.statusHistory && Array.isArray(queue.statusHistory)) {
+    const selesaiLog = queue.statusHistory.find(h => h.status === 'SELESAI');
+    if (selesaiLog && selesaiLog.timestamp) {
+      endVal = selesaiLog.timestamp;
+    }
+  }
+  if (!endVal) {
+    endVal = queue.completedAt || queue.updatedAt || startVal;
+  }
+
+  const startTs = parseDateToTimestamp(startVal);
+  const endTs = parseDateToTimestamp(endVal);
+
+  if (startTs && endTs) {
+    const diffMs = endTs - startTs;
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    
+    // If entered & finished on same day (e.g. diff = 0), count as 1 Hari
+    if (diffDays <= 0) {
+      return '1 Hari';
+    }
+    return `${diffDays} Hari`;
+  }
+
+  return `${queue.durationDays || 1} Hari`;
 };
 
 export const saveQueuesToStorage = (queues) => {
