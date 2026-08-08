@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar as CalendarIcon, ChevronRight, ChevronLeft, X, Info, CheckCircle2, Settings, Plus, Trash2, CalendarDays } from 'lucide-react';
 import { STATUS_MAP, getStoredHolidayConfig, saveHolidayConfigToStorage, isHoliday, calculateWorkdayEndDate } from '../utils/storage';
 
-export default function CalendarView({ queues, onNavigateToBooking, isAdmin = false }) {
+export default function CalendarView({ queues, onNavigateToBooking, holidayConfig: propHolidayConfig, onSaveHolidayConfig, isAdmin = false }) {
   // Current displayed calendar year & month (Default: August 2026)
   const [currentYear, setCurrentYear] = useState(2026);
   const [currentMonth, setCurrentMonth] = useState(7); // 7 = August (0-indexed)
@@ -10,15 +10,19 @@ export default function CalendarView({ queues, onNavigateToBooking, isAdmin = fa
   const [activeDateModal, setActiveDateModal] = useState(null);
   
   // Holiday Configuration State
-  const [holidayConfig, setHolidayConfig] = useState(getStoredHolidayConfig);
+  const [localHolidayConfig, setLocalHolidayConfig] = useState(getStoredHolidayConfig);
+  const holidayConfig = propHolidayConfig || localHolidayConfig;
   const [showHolidayModal, setShowHolidayModal] = useState(false);
   const [newHolidayDate, setNewHolidayDate] = useState('');
   const [newHolidayTitle, setNewHolidayTitle] = useState('');
 
-  // Synchronize holiday config with localStorage updates
+  // Synchronize holiday config with localStorage and Turso updates
   const handleSaveHolidayConfig = (updated) => {
-    setHolidayConfig(updated);
+    setLocalHolidayConfig(updated);
     saveHolidayConfigToStorage(updated);
+    if (onSaveHolidayConfig) {
+      onSaveHolidayConfig(updated);
+    }
   };
 
   const toggleWeeklyOffDay = (dayNum) => {

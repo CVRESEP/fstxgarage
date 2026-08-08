@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { INITIAL_SERVICES, getStoredSiteConfig } from '../utils/storage';
 import { X, Printer, Wrench, Shield, CheckCircle2, FileText, Smartphone, Receipt, Sliders, CreditCard } from 'lucide-react';
 
-export default function WorkOrderModal({ queue, onClose }) {
+export default function WorkOrderModal({ queue, services: propServices, onClose }) {
   const [printMode, setPrintMode] = useState('a4'); // 'a4' or 'thermal'
   const [thermalWidth, setThermalWidth] = useState('58mm'); // '58mm' or '80mm'
 
@@ -14,8 +14,9 @@ export default function WorkOrderModal({ queue, onClose }) {
   const bankHolder = siteConfig.bankHolder || 'FSTWORKS GARAGE OFFICIAL';
 
   const getServiceItems = () => {
+    const allServices = (propServices && propServices.length > 0) ? propServices : INITIAL_SERVICES;
     return (queue.services || []).map(id => {
-      const s = INITIAL_SERVICES.find(srv => srv.id === id);
+      const s = allServices.find(srv => srv.id === id);
       return s || { name: id, price: 0 };
     });
   };

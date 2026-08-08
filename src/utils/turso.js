@@ -2,36 +2,56 @@ import { createClient } from '@libsql/client/web';
 
 const TURSO_CONFIG_KEY = 'FSTWORKS_TURSO_CONFIG_V1';
 
+const DEFAULT_TURSO_URL = 'https://fstxgarage-db-fstworks.aws-ap-northeast-1.turso.io';
+const DEFAULT_TURSO_TOKEN = 'eyJhbGciOiJFZERTQSIsInR5cCI6IkpXVCJ9.eyJhIjoicnciLCJpYXQiOjE3ODYxOTQxMzUsImlkIjoiMDE5ZmUxNzctMWMwMS03NjVlLWI5NGUtYzMyZmE4MmFlOWI5Iiwia2lkIjoickVqTnlrVGg3SC1iZHRwdXZmamhkdTBwQlJtT0tFczdjdFZKbWJRVC1GOCIsInJpZCI6IjZmNTcxNDM2LTdkYTctNGFmYi04MTY5LTI1ZDkzZjJmOGY3MiJ9.lFP45JLC-mzHUlLVs9iuNfUg8PmxDV2nqTMel1GBLlEcReezIyB67A6MTO1WdFBYwgQ7h72RWgPR4wFqD3OGAg';
+
 export const getStoredTursoCredentials = () => {
-  const envUrl = import.meta.env?.VITE_TURSO_DATABASE_URL || '';
-  const envToken = import.meta.env?.VITE_TURSO_AUTH_TOKEN || '';
+  const envUrl = (import.meta.env?.VITE_TURSO_DATABASE_URL || '').trim();
+  const envToken = (import.meta.env?.VITE_TURSO_AUTH_TOKEN || '').trim();
+
+  let finalUrl = envUrl || DEFAULT_TURSO_URL;
+  let finalToken = envToken || DEFAULT_TURSO_TOKEN;
 
   try {
     const saved = localStorage.getItem(TURSO_CONFIG_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      const finalUrl = (parsed.url && parsed.url.trim()) || envUrl;
-      const finalToken = (parsed.authToken && parsed.authToken.trim()) || envToken;
-      return {
-        url: finalUrl,
-        authToken: finalToken,
-        isEnabled: Boolean(finalUrl)
-      };
+      if (parsed.url && parsed.url.trim()) {
+        finalUrl = parsed.url.trim();
+      }
+      if (parsed.authToken && parsed.authToken.trim()) {
+        finalToken = parsed.authToken.trim();
+      }
     }
   } catch (err) {
     console.error('Error reading Turso credentials:', err);
   }
 
+  // Ensure HTTPS endpoint for browser fetch compatibility
+  if (finalUrl.startsWith('libsql://')) {
+    finalUrl = finalUrl.replace(/^libsql:\/\//, 'https://');
+  }
+
   return {
-    url: envUrl,
-    authToken: envToken,
-    isEnabled: Boolean(envUrl)
+    url: finalUrl,
+    authToken: finalToken,
+    isEnabled: Boolean(finalUrl)
   };
 };
 
 export const saveTursoCredentials = (credentials) => {
   try {
-    localStorage.setItem(TURSO_CONFIG_KEY, JSON.stringify(credentials));
+    let url = (credentials.url || '').trim();
+    if (url.startsWith('libsql://')) {
+      url = url.replace(/^libsql:\/\//, 'https://');
+    }
+    const cleanCreds = {
+      url,
+      authToken: (credentials.authToken || '').trim(),
+      isEnabled: Boolean(url)
+    };
+    localStorage.setItem(TURSO_CONFIG_KEY, JSON.stringify(cleanCreds));
+    resetTursoClient();
   } catch (err) {
     console.error('Error saving Turso credentials:', err);
   }
@@ -186,7 +206,6 @@ export const initTursoSchema = async () => {
       );`
     ], 'write');
 
-    console.log('✅ All 7 normalized Turso database tables verified and initialized!');
     return true;
   } catch (err) {
     console.error('❌ Error initializing Turso DB schema:', err);
@@ -197,7 +216,11 @@ export const initTursoSchema = async () => {
 // Test Connection
 export const testTursoConnection = async (url, authToken) => {
   try {
-    const tempClient = createClient({ url, authToken: authToken || undefined });
+    let cleanUrl = (url || '').trim();
+    if (cleanUrl.startsWith('libsql://')) {
+      cleanUrl = cleanUrl.replace(/^libsql:\/\//, 'https://');
+    }
+    const tempClient = createClient({ url: cleanUrl, authToken: authToken || undefined });
     await tempClient.execute('SELECT 1;');
     return { success: true, message: 'Koneksi ke Turso Database Berhasil!' };
   } catch (err) {

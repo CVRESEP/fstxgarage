@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import CalendarView from './components/CalendarView';
@@ -14,19 +14,20 @@ import Footer from './components/Footer';
 import { 
   getStoredQueues, 
   saveQueuesToStorage,
-  getStoredServices,
+  getStoredServices, 
   saveServicesToStorage,
-  getStoredSiteConfig,
+  getStoredSiteConfig, 
   saveSiteConfigToStorage,
-  getStoredTestimonials,
+  getStoredTestimonials, 
   saveTestimonialsToStorage,
-  getStoredProducts,
+  getStoredProducts, 
   saveProductsToStorage,
-  getStoredSymptoms,
+  getStoredSymptoms, 
   saveSymptomsToStorage,
-  getStoredHolidayConfig,
+  getStoredHolidayConfig, 
   saveHolidayConfigToStorage
 } from './utils/storage';
+
 import { 
   initTursoSchema,
   fetchQueuesFromTurso, 
@@ -47,77 +48,123 @@ import {
 export default function App() {
   const [activeRole, setActiveRole] = useState('customer');
   const [activeTab, setActiveTab] = useState('home');
-  const [queues, setQueues] = useState(getStoredQueues());
-  const [services, setServices] = useState(getStoredServices());
+  const [queues, setQueues] = useState([]);
+  const [services, setServices] = useState([]);
   const [siteConfig, setSiteConfig] = useState(getStoredSiteConfig());
-  const [testimonials, setTestimonials] = useState(getStoredTestimonials());
-  const [products, setProducts] = useState(getStoredProducts());
-  const [symptoms, setSymptoms] = useState(getStoredSymptoms());
+  const [testimonials, setTestimonials] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [symptoms, setSymptoms] = useState([]);
   const [holidays, setHolidays] = useState(getStoredHolidayConfig());
   const [activeSPKQueue, setActiveSPKQueue] = useState(null);
   const [selectedCalendarDate, setSelectedCalendarDate] = useState('');
   const [showAdminLoginModal, setShowAdminLoginModal] = useState(false);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  // Load ALL live data from Turso Edge DB on mount
-  useEffect(() => {
-    const loadTursoData = async () => {
-      // 0. Ensure schema & tables exist in Turso Cloud Database
+  // Fetch ALL live data from Turso Cloud Database on mount
+  const refreshAllData = useCallback(async () => {
+    try {
       await initTursoSchema();
 
+      const [
+        tursoQueues,
+        tursoServices,
+        tursoConfig,
+        tursoTestimonials,
+        tursoProducts,
+        tursoSymptoms,
+        tursoHolidays
+      ] = await Promise.all([
+        fetchQueuesFromTurso(),
+        fetchServicesFromTurso(),
+        fetchSiteConfigFromTurso(),
+        fetchTestimonialsFromTurso(),
+        fetchProductsFromTurso(),
+        fetchSymptomsFromTurso(),
+        fetchHolidaysFromTurso()
+      ]);
+
       // 1. Queues
-      const tursoQueues = await fetchQueuesFromTurso();
       if (tursoQueues && Array.isArray(tursoQueues)) {
         setQueues(tursoQueues);
+        saveQueuesToStorage(tursoQueues);
+      } else {
+        const localQ = getStoredQueues();
+        setQueues(localQ);
       }
 
-      // 2. Services Catalog
-      const tursoServices = await fetchServicesFromTurso();
+      // 2. Services
       if (tursoServices && Array.isArray(tursoServices) && tursoServices.length > 0) {
         setServices(tursoServices);
+        saveServicesToStorage(tursoServices);
       } else {
-        await saveServicesToTurso(services);
+        const localS = getStoredServices();
+        setServices(localS);
+        await saveServicesToTurso(localS);
       }
 
-      // 3. Site Config (CMS)
-      const tursoConfig = await fetchSiteConfigFromTurso();
+      // 3. Site Config
       if (tursoConfig && Object.keys(tursoConfig).length > 0) {
         setSiteConfig(tursoConfig);
+        saveSiteConfigToStorage(tursoConfig);
       } else {
-        await saveSiteConfigToTurso(siteConfig);
+        const localC = getStoredSiteConfig();
+        setSiteConfig(localC);
+        await saveSiteConfigToTurso(localC);
       }
 
       // 4. Testimonials
-      const tursoTestimonials = await fetchTestimonialsFromTurso();
-      if (tursoTestimonials && Array.isArray(tursoTestimonials) && tursoTestimonials.length > 0) {
+      if (tursoTestimonials && Array.isArray(tursoTestimonials)) {
         setTestimonials(tursoTestimonials);
+        saveTestimonialsToStorage(tursoTestimonials);
       } else {
-        await saveTestimonialsToTurso(testimonials);
+        setTestimonials(getStoredTestimonials());
       }
 
-      // 5. Products (Sparepart)
-      const tursoProducts = await fetchProductsFromTurso();
+      // 5. Products
       if (tursoProducts && Array.isArray(tursoProducts)) {
         setProducts(tursoProducts);
+        saveProductsToStorage(tursoProducts);
+      } else {
+        setProducts(getStoredProducts());
       }
 
       // 6. Symptoms
-      const tursoSymptoms = await fetchSymptomsFromTurso();
       if (tursoSymptoms && Array.isArray(tursoSymptoms) && tursoSymptoms.length > 0) {
         setSymptoms(tursoSymptoms);
+        saveSymptomsToStorage(tursoSymptoms);
       } else {
-        await saveSymptomsToTurso(symptoms);
+        const localSym = getStoredSymptoms();
+        setSymptoms(localSym);
+        await saveSymptomsToTurso(localSym);
       }
 
       // 7. Holidays
-      const tursoHolidays = await fetchHolidaysFromTurso();
       if (tursoHolidays && Object.keys(tursoHolidays).length > 0) {
         setHolidays(tursoHolidays);
+        saveHolidayConfigToStorage(tursoHolidays);
       } else {
-        await saveHolidaysToTurso(holidays);
+        const localH = getStoredHolidayConfig();
+        setHolidays(localH);
+        await saveHolidaysToTurso(localH);
       }
-    };
-    loadTursoData();
+
+      setIsDataLoaded(true);
+    } catch (err) {
+      console.error('Error fetching live data from Turso Cloud Database:', err);
+      setQueues(getStoredQueues());
+      setServices(getStoredServices());
+      setSiteConfig(getStoredSiteConfig());
+      setTestimonials(getStoredTestimonials());
+      setProducts(getStoredProducts());
+      setSymptoms(getStoredSymptoms());
+      setHolidays(getStoredHolidayConfig());
+      setIsDataLoaded(true);
+    }
   }, []);
+
+  useEffect(() => {
+    refreshAllData();
+  }, [refreshAllData]);
 
   // Check URL hash for direct admin access e.g., #admin or #login
   useEffect(() => {
@@ -134,21 +181,21 @@ export default function App() {
     return () => window.removeEventListener('hashchange', handleHashCheck);
   }, []);
 
-  // Sync ALL state changes to localStorage + Turso
-  useEffect(() => { saveQueuesToStorage(queues); }, [queues]);
-  useEffect(() => { saveServicesToStorage(services); }, [services]);
-  useEffect(() => { saveSiteConfigToStorage(siteConfig); }, [siteConfig]);
-  useEffect(() => { saveTestimonialsToStorage(testimonials); }, [testimonials]);
-  useEffect(() => { saveProductsToStorage(products); }, [products]);
-  useEffect(() => { saveSymptomsToStorage(symptoms); }, [symptoms]);
-  useEffect(() => { saveHolidayConfigToStorage(holidays); }, [holidays]);
+  // Save changes to localStorage only when user modifies state post-initialization
+  useEffect(() => { if (isDataLoaded) saveQueuesToStorage(queues); }, [queues, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveServicesToStorage(services); }, [services, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveSiteConfigToStorage(siteConfig); }, [siteConfig, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveTestimonialsToStorage(testimonials); }, [testimonials, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveProductsToStorage(products); }, [products, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveSymptomsToStorage(symptoms); }, [symptoms, isDataLoaded]);
+  useEffect(() => { if (isDataLoaded) saveHolidayConfigToStorage(holidays); }, [holidays, isDataLoaded]);
 
   const handleQueueCreated = async (newQueue) => {
     setQueues(prev => [newQueue, ...prev]);
     await saveQueueToTurso(newQueue);
   };
 
-  const handleSelectDateFromCalendar = (dateStr, duration) => {
+  const handleSelectDateFromCalendar = (dateStr) => {
     setSelectedCalendarDate(dateStr);
     setActiveTab('booking');
   };
@@ -204,6 +251,12 @@ export default function App() {
               <CalendarView 
                 queues={queues}
                 onNavigateToBooking={() => setActiveTab('booking')}
+                holidayConfig={holidays}
+                onSaveHolidayConfig={async (updated) => {
+                  setHolidays(updated);
+                  await saveHolidaysToTurso(updated);
+                }}
+                isAdmin={activeRole === 'admin'}
               />
             )}
 
@@ -221,6 +274,7 @@ export default function App() {
             {activeTab === 'tracker' && (
               <QueueTracker 
                 queues={queues}
+                services={services}
                 onSelectQueue={(q) => setActiveSPKQueue(q)}
               />
             )}
@@ -266,6 +320,7 @@ export default function App() {
       {activeSPKQueue && (
         <WorkOrderModal 
           queue={activeSPKQueue}
+          services={services}
           onClose={() => setActiveSPKQueue(null)}
         />
       )}

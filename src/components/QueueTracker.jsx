@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { STATUS_MAP, INITIAL_SERVICES } from '../utils/storage';
 import { Search, Lock, CheckCircle2, ArrowRight, Wrench, FileText, PlusCircle } from 'lucide-react';
 
-export default function QueueTracker({ queues }) {
+export default function QueueTracker({ queues, services: propServices, onSelectQueue }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [searched, setSearched] = useState(false);
   const [foundQueue, setFoundQueue] = useState(null);
@@ -39,9 +39,10 @@ export default function QueueTracker({ queues }) {
   };
 
   const getServiceNames = (serviceIds) => {
-    if (!serviceIds) return '-';
+    if (!serviceIds || serviceIds.length === 0) return '-';
+    const allServices = (propServices && propServices.length > 0) ? propServices : INITIAL_SERVICES;
     return serviceIds.map(id => {
-      const s = INITIAL_SERVICES.find(srv => srv.id === id);
+      const s = allServices.find(srv => srv.id === id);
       return s ? s.name : id;
     }).join(', ');
   };
