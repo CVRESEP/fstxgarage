@@ -37,12 +37,7 @@ async function main() {
       );`,
       `CREATE TABLE IF NOT EXISTS services (
         id TEXT PRIMARY KEY,
-        name TEXT,
-        category TEXT,
-        price REAL,
-        duration TEXT,
-        description TEXT,
-        stage INTEGER
+        json_data TEXT
       );`,
       `CREATE TABLE IF NOT EXISTS products (
         id TEXT PRIMARY KEY,

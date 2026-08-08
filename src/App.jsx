@@ -47,6 +47,8 @@ export default function App() {
       const tursoServices = await fetchServicesFromTurso();
       if (tursoServices && Array.isArray(tursoServices) && tursoServices.length > 0) {
         setServices(tursoServices);
+      } else {
+        saveServicesToTurso(services);
       }
       const tursoConfig = await fetchSiteConfigFromTurso();
       if (tursoConfig) {
