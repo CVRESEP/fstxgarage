@@ -40,7 +40,7 @@ export default function QueueTracker({ queues, services: propServices, onSelectQ
 
   const getServiceNames = (serviceIds) => {
     if (!serviceIds || serviceIds.length === 0) return '-';
-    const allServices = (propServices && propServices.length > 0) ? propServices : INITIAL_SERVICES;
+    const allServices = propServices || [];
     return serviceIds.map(id => {
       const s = allServices.find(srv => srv.id === id);
       return s ? s.name : id;

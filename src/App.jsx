@@ -93,13 +93,12 @@ export default function App() {
       }
 
       // 2. Services
-      if (tursoServices && Array.isArray(tursoServices) && tursoServices.length > 0) {
+      if (tursoServices && Array.isArray(tursoServices)) {
         setServices(tursoServices);
         saveServicesToStorage(tursoServices);
       } else {
         const localS = getStoredServices();
         setServices(localS);
-        await saveServicesToTurso(localS);
       }
 
       // 3. Site Config
@@ -109,7 +108,6 @@ export default function App() {
       } else {
         const localC = getStoredSiteConfig();
         setSiteConfig(localC);
-        await saveSiteConfigToTurso(localC);
       }
 
       // 4. Testimonials
@@ -129,13 +127,12 @@ export default function App() {
       }
 
       // 6. Symptoms
-      if (tursoSymptoms && Array.isArray(tursoSymptoms) && tursoSymptoms.length > 0) {
+      if (tursoSymptoms && Array.isArray(tursoSymptoms)) {
         setSymptoms(tursoSymptoms);
         saveSymptomsToStorage(tursoSymptoms);
       } else {
         const localSym = getStoredSymptoms();
         setSymptoms(localSym);
-        await saveSymptomsToTurso(localSym);
       }
 
       // 7. Holidays
@@ -145,7 +142,6 @@ export default function App() {
       } else {
         const localH = getStoredHolidayConfig();
         setHolidays(localH);
-        await saveHolidaysToTurso(localH);
       }
 
       setIsDataLoaded(true);

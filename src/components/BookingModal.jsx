@@ -10,8 +10,8 @@ export default function BookingModal({ onQueueCreated, onClose, existingQueues, 
   const [createdBooking, setCreatedBooking] = useState(null);
 
   // Dynamic services & symptoms from props/storage (managed by Admin & Turso DB)
-  const availableServices = (propServices && propServices.length > 0) ? propServices : getStoredServices();
-  const availableSymptoms = (propSymptoms && propSymptoms.length > 0) ? propSymptoms : getStoredSymptoms();
+  const availableServices = propServices || [];
+  const availableSymptoms = propSymptoms || [];
 
   // Form State
   const [customerName, setCustomerName] = useState('');

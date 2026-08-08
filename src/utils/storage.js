@@ -1,12 +1,13 @@
 // FSTWORKS Data Storage & Turso Cloud Sync Management System
 import { 
-  saveQueueToTurso, 
+  saveQueueToTurso,
+  saveAllQueuesToTurso, 
   saveSiteConfigToTurso, 
-  saveProductToTurso,
-  saveServicesToTurso,
-  saveHolidaysToTurso,
-  saveTestimonialsToTurso,
-  saveSymptomsToTurso
+  saveProductsToTurso,
+  saveServicesToTurso, 
+  saveHolidaysToTurso, 
+  saveTestimonialsToTurso, 
+  saveSymptomsToTurso 
 } from './turso';
 
 export const STORAGE_KEY = 'FSTWORKS_QUEUE_DATA_V3';
@@ -18,6 +19,10 @@ export const TESTIMONIALS_STORAGE_KEY = 'FSTWORKS_TESTIMONIALS_V1';
 
 // NO DUMMY DATA - Clean production defaults
 export const INITIAL_PRODUCTS = [];
+export const INITIAL_TESTIMONIALS = [];
+export const INITIAL_QUEUES = [];
+export const INITIAL_SYMPTOMS = [];
+export const INITIAL_SERVICES = [];
 
 export const INITIAL_SITE_CONFIG = {
   heroBadge: 'Undercarriage Specialist',
@@ -35,138 +40,30 @@ export const INITIAL_SITE_CONFIG = {
   adminPin: '1234'
 };
 
-export const INITIAL_TESTIMONIALS = [];
-
-export const INITIAL_SERVICES = [
-  {
-    id: 'free_inspection',
-    name: 'Free Check-Up Kaki-Kaki & Diagnosa (21 Titik)',
-    category: 'Inspeksi & Diagnosa',
-    stage: 1,
-    price: 0,
-    estimatedDuration: '1 Hari',
-    description: 'Pengecekan fisik shockbreaker, tierod, ball joint, bushing, steering rack, bearing roda, dan test drive awal secara GRATIS.'
-  },
-  {
-    id: 'spooring_balancing_3d',
-    name: 'Paket Spooring 3D Laser + Dynamic Balancing 4 Roda',
-    category: 'Presisi Wheel Alignment',
-    stage: 1,
-    price: 220000,
-    estimatedDuration: '1 Hari',
-    description: 'Kalibrasi kelurusan roda 3D sensor digital, balancing bobot timah digital, cegah ban makan sebelah.'
-  },
-  {
-    id: 'tierod_balljoint',
-    name: 'Rekondisi & Press Tierod, Long Tierod, Ball Joint',
-    category: 'Kemudi & Ball Joint',
-    stage: 2,
-    price: 180000,
-    estimatedDuration: '1 Hari',
-    description: 'Mengatasi stir speling, bunyi kletek-kletek saat belok/jalan keriting, perbaikan ball joint presisi.'
-  },
-  {
-    id: 'shockbreaker_service',
-    name: 'Servis & Rekondisi Shockbreaker (Depan/Belakang)',
-    category: 'Suspensi',
-    stage: 2,
-    price: 250000,
-    estimatedDuration: '1 Hari',
-    description: 'Press oli, ganti seal high pressure, isi gas nitrogen & tuning keempukan (Soft/Hard/Standard).'
-  },
-  {
-    id: 'bushing_arm_replacement',
-    name: 'Penggantian Bushing Arm & Axle (Set Kiri-Kanan)',
-    category: 'Bushing & Arm',
-    stage: 2,
-    price: 350000,
-    estimatedDuration: '1 Hari',
-    description: 'Penggantian bushing rubber OEM atau Heavy-Duty Polyurethane agar sasis mobil stabil dan antilimbung.'
-  },
-  {
-    id: 'custom_lowering_standard',
-    name: 'Custom Fitting Suspensi / Lowering Kit / Re-Standard',
-    category: 'Suspensi',
-    stage: 3,
-    price: 450000,
-    estimatedDuration: '2 Hari',
-    description: 'Tuning ketinggian mobil, potong/ganti per custom, pasang stopper polyurethane, bebas gesrot.'
-  },
-  {
-    id: 'steering_rack',
-    name: 'Overhaul / Repair Steering Rack & Power Steering',
-    category: 'Kemudi & Ball Joint',
-    stage: 4,
-    price: 750000,
-    estimatedDuration: '3 Hari',
-    description: 'Perbaikan steering rack bocor, ganti seal kit OEM, ganti bushing teflon rack, hilangkan bunyi jeblug.'
-  },
-  {
-    id: 'custom_manual_service',
-    name: '📝 Layanan Custom / Perbaikan Spesifik (Isian Manual)',
-    category: 'Custom Service',
-    stage: 5,
-    price: 0,
-    isManual: true,
-    estimatedDuration: '5 Hari',
-    description: 'Pilih ini jika perbaikan/custom yang Anda butuhkan tidak ada di daftar. Tuliskan deskripsi sendiri, harga akan ditentukan oleh Admin Workshop.'
-  }
-];
-
-export const INITIAL_SYMPTOMS = [
-  'Bunyi klok-klok / gertak saat lewat jalan keriting/lubang',
-  'Setir getar / speling saat kecepatan di atas 70 km/jam',
-  'Mobil narik ke kiri atau ke kanan saat jalan lurus',
-  'Suspensi amblas / keras / ayunan tidak stabil',
-  'Tetesan oli bocor dari area rack steer / power steering',
-  'Ban mobil aus makan sebelah (luar/dalam)'
-];
-
 export const INITIAL_PITS = [
   { id: 'PIT-1', name: 'Pit 1 - Heavy Suspension & Rack', mechanic: 'Mechanic Master', status: 'AVAILABLE' },
   { id: 'PIT-2', name: 'Pit 2 - Quick Shock & Bushing Press', mechanic: 'Suspension Specialist', status: 'AVAILABLE' },
   { id: 'PIT-3', name: 'Pit 3 - Spooring 3D Digital Laser', mechanic: 'Alignment Expert', status: 'AVAILABLE' }
 ];
 
-export const INITIAL_QUEUES = [];
-
 export const getStoredServices = () => {
   try {
     const data = localStorage.getItem(SERVICES_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(INITIAL_SERVICES));
-      return INITIAL_SERVICES;
+    if (data === null) {
+      return [];
     }
     const parsed = JSON.parse(data);
-    const stageMap = {
-      'free_inspection': 1,
-      'spooring_balancing_3d': 1,
-      'tierod_balljoint': 2,
-      'shockbreaker_service': 2,
-      'bushing_arm_replacement': 2,
-      'custom_lowering_standard': 3,
-      'steering_rack': 4,
-      'custom_manual_service': 5
-    };
-    const updated = parsed.map(srv => {
-      const stage = srv.stage || stageMap[srv.id] || 1;
-      let dur = srv.estimatedDuration || `${stage} Hari`;
-      if (dur.includes('Menit')) {
-        dur = `${stage} Hari`;
-      }
-      return { ...srv, stage, estimatedDuration: dur };
-    });
-    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(updated));
-    return updated;
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    return INITIAL_SERVICES;
+    return [];
   }
 };
 
 export const saveServicesToStorage = (services) => {
   try {
-    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(services));
-    saveServicesToTurso(services);
+    const arr = Array.isArray(services) ? services : [];
+    localStorage.setItem(SERVICES_STORAGE_KEY, JSON.stringify(arr));
+    saveServicesToTurso(arr);
   } catch (error) {
     console.error('Error saving services:', error);
   }
@@ -175,20 +72,21 @@ export const saveServicesToStorage = (services) => {
 export const getStoredSymptoms = () => {
   try {
     const data = localStorage.getItem(SYMPTOMS_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(SYMPTOMS_STORAGE_KEY, JSON.stringify(INITIAL_SYMPTOMS));
-      return INITIAL_SYMPTOMS;
+    if (data === null) {
+      return [];
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    return INITIAL_SYMPTOMS;
+    return [];
   }
 };
 
 export const saveSymptomsToStorage = (symptoms) => {
   try {
-    localStorage.setItem(SYMPTOMS_STORAGE_KEY, JSON.stringify(symptoms));
-    saveSymptomsToTurso(symptoms);
+    const arr = Array.isArray(symptoms) ? symptoms : [];
+    localStorage.setItem(SYMPTOMS_STORAGE_KEY, JSON.stringify(arr));
+    saveSymptomsToTurso(arr);
   } catch (error) {
     console.error('Error saving symptoms:', error);
   }
@@ -197,20 +95,21 @@ export const saveSymptomsToStorage = (symptoms) => {
 export const getStoredProducts = () => {
   try {
     const data = localStorage.getItem(PRODUCTS_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(INITIAL_PRODUCTS));
-      return INITIAL_PRODUCTS;
+    if (data === null) {
+      return [];
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    return INITIAL_PRODUCTS;
+    return [];
   }
 };
 
 export const saveProductsToStorage = (products) => {
   try {
-    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(products));
-    (products || []).forEach(p => saveProductToTurso(p));
+    const arr = Array.isArray(products) ? products : [];
+    localStorage.setItem(PRODUCTS_STORAGE_KEY, JSON.stringify(arr));
+    saveProductsToTurso(arr);
   } catch (error) {
     console.error('Error saving products:', error);
   }
@@ -220,7 +119,6 @@ export const getStoredSiteConfig = () => {
   try {
     const data = localStorage.getItem(SITE_CONFIG_STORAGE_KEY);
     if (!data) {
-      localStorage.setItem(SITE_CONFIG_STORAGE_KEY, JSON.stringify(INITIAL_SITE_CONFIG));
       return INITIAL_SITE_CONFIG;
     }
     return { ...INITIAL_SITE_CONFIG, ...JSON.parse(data) };
@@ -241,20 +139,21 @@ export const saveSiteConfigToStorage = (config) => {
 export const getStoredTestimonials = () => {
   try {
     const data = localStorage.getItem(TESTIMONIALS_STORAGE_KEY);
-    if (!data) {
-      localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(INITIAL_TESTIMONIALS));
-      return INITIAL_TESTIMONIALS;
+    if (data === null) {
+      return [];
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    return Array.isArray(parsed) ? parsed : [];
   } catch (error) {
-    return INITIAL_TESTIMONIALS;
+    return [];
   }
 };
 
 export const saveTestimonialsToStorage = (testimonials) => {
   try {
-    localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(testimonials));
-    saveTestimonialsToTurso(testimonials);
+    const arr = Array.isArray(testimonials) ? testimonials : [];
+    localStorage.setItem(TESTIMONIALS_STORAGE_KEY, JSON.stringify(arr));
+    saveTestimonialsToTurso(arr);
   } catch (error) {
     console.error('Error saving testimonials:', error);
   }
@@ -263,7 +162,12 @@ export const saveTestimonialsToStorage = (testimonials) => {
 export const getStoredQueues = () => {
   try {
     const data = localStorage.getItem(STORAGE_KEY);
-    const parsed = data ? JSON.parse(data) : INITIAL_QUEUES;
+    if (data === null) {
+      return [];
+    }
+    const parsed = JSON.parse(data);
+    if (!Array.isArray(parsed)) return [];
+
     const holConfig = getStoredHolidayConfig();
     const updated = parsed.map(q => {
       if (q.startDate && q.durationDays) {
@@ -272,20 +176,18 @@ export const getStoredQueues = () => {
       }
       return q;
     });
-    if (!data) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    }
     return updated;
   } catch (error) {
     console.error('Error reading queues:', error);
-    return INITIAL_QUEUES;
+    return [];
   }
 };
 
 export const saveQueuesToStorage = (queues) => {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(queues));
-    (queues || []).forEach(q => saveQueueToTurso(q));
+    const arr = Array.isArray(queues) ? queues : [];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+    saveAllQueuesToTurso(arr);
   } catch (error) {
     console.error('Error saving queues:', error);
   }
@@ -299,7 +201,7 @@ export const generateBookingId = () => {
 
 export const generateQueueNumber = (existingQueues = []) => {
   const today = new Date().toISOString().slice(0, 10);
-  const todayQueues = existingQueues.filter(q => q.bookingDate === today);
+  const todayQueues = (existingQueues || []).filter(q => q.bookingDate === today);
   const nextNum = todayQueues.length + 1;
   return `A-${nextNum < 10 ? '0' + nextNum : nextNum}`;
 };
@@ -326,7 +228,6 @@ export const getStoredHolidayConfig = () => {
   try {
     const data = localStorage.getItem(HOLIDAYS_STORAGE_KEY);
     if (!data) {
-      localStorage.setItem(HOLIDAYS_STORAGE_KEY, JSON.stringify(INITIAL_HOLIDAY_CONFIG));
       return INITIAL_HOLIDAY_CONFIG;
     }
     return JSON.parse(data);

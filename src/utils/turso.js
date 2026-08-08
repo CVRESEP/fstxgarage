@@ -87,7 +87,7 @@ export const initTursoSchema = async () => {
   if (!client) return false;
 
   try {
-    // 1. Check if legacy tables with json_data / config_json exist, and auto-migrate them
+    // Check if legacy tables with json_data / config_json exist, and auto-migrate them
     try {
       const checkServices = await client.execute("PRAGMA table_info(services);");
       const hasJsonDataInServices = checkServices.rows.some(r => r.name === 'json_data');
@@ -128,7 +128,7 @@ export const initTursoSchema = async () => {
       }
     } catch (_) {}
 
-    // 2. Create normalized relational tables
+    // Create normalized relational tables
     await client.batch([
       `CREATE TABLE IF NOT EXISTS queues (
         id TEXT PRIMARY KEY,
@@ -341,6 +341,77 @@ export const deleteQueueFromTurso = async (id) => {
   }
 };
 
+export const saveAllQueuesToTurso = async (queues) => {
+  const client = getTursoClient();
+  if (!client || !Array.isArray(queues)) return false;
+
+  try {
+    if (queues.length === 0) {
+      await client.execute('DELETE FROM queues;');
+      return true;
+    }
+    const placeholders = queues.map(() => '?').join(',');
+    const deleteStmt = {
+      sql: `DELETE FROM queues WHERE id NOT IN (${placeholders});`,
+      args: queues.map(q => q.id)
+    };
+    const insertStmts = queues.map(q => ({
+      sql: `INSERT INTO queues (
+        id, customerName, phone, licensePlate, carModel, services, parts, additionalServices, 
+        isApproved, status, startDate, durationDays, endDate, estimatedCost, customManualPrice, 
+        customManualText, customStatusText, statusHistory, createdAt, updatedAt
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        customerName=excluded.customerName,
+        phone=excluded.phone,
+        licensePlate=excluded.licensePlate,
+        carModel=excluded.carModel,
+        services=excluded.services,
+        parts=excluded.parts,
+        additionalServices=excluded.additionalServices,
+        isApproved=excluded.isApproved,
+        status=excluded.status,
+        startDate=excluded.startDate,
+        durationDays=excluded.durationDays,
+        endDate=excluded.endDate,
+        estimatedCost=excluded.estimatedCost,
+        customManualPrice=excluded.customManualPrice,
+        customManualText=excluded.customManualText,
+        customStatusText=excluded.customStatusText,
+        statusHistory=excluded.statusHistory,
+        updatedAt=excluded.updatedAt;`,
+      args: [
+        q.id,
+        q.customerName || '',
+        q.phone || '',
+        q.licensePlate || '',
+        q.carModel || '',
+        JSON.stringify(q.services || []),
+        JSON.stringify(q.parts || []),
+        JSON.stringify(q.additionalServices || []),
+        q.isApproved ? 1 : 0,
+        q.status || 'BOOKING',
+        q.startDate || '',
+        q.durationDays || 1,
+        q.endDate || '',
+        q.estimatedCost || 0,
+        q.customManualPrice || 0,
+        q.customManualText || '',
+        q.customStatusText || '',
+        JSON.stringify(q.statusHistory || []),
+        q.createdAt || new Date().toISOString(),
+        q.updatedAt || new Date().toISOString()
+      ]
+    }));
+
+    await client.batch([deleteStmt, ...insertStmts], 'write');
+    return true;
+  } catch (err) {
+    console.error('Error saving all queues to Turso:', err);
+    return false;
+  }
+};
+
 // 2. Site Config CRUD (Normalized Relational Columns)
 export const fetchSiteConfigFromTurso = async () => {
   const client = getTursoClient();
@@ -426,7 +497,7 @@ export const saveSiteConfigToTurso = async (config) => {
   }
 };
 
-// 3. Products CRUD (Normalized Relational Columns)
+// 3. Products CRUD (Normalized Relational Columns with Full Sync Deletion)
 export const fetchProductsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
@@ -483,28 +554,60 @@ export const deleteProductFromTurso = async (id) => {
   }
 };
 
-// 4. Services CRUD (Normalized Relational Columns: id, name, category, stage, price, estimatedDuration, description)
+export const saveProductsToTurso = async (products) => {
+  const client = getTursoClient();
+  if (!client || !Array.isArray(products)) return false;
+
+  try {
+    if (products.length === 0) {
+      await client.execute('DELETE FROM products;');
+      return true;
+    }
+    const placeholders = products.map(() => '?').join(',');
+    const deleteStmt = {
+      sql: `DELETE FROM products WHERE id NOT IN (${placeholders});`,
+      args: products.map(p => p.id)
+    };
+    const insertStmts = products.map(p => ({
+      sql: `INSERT INTO products (id, code, name, category, price, stock)
+            VALUES (?, ?, ?, ?, ?, ?)
+            ON CONFLICT(id) DO UPDATE SET
+              code=excluded.code,
+              name=excluded.name,
+              category=excluded.category,
+              price=excluded.price,
+              stock=excluded.stock;`,
+      args: [p.id, p.code || '', p.name || '', p.category || '', Number(p.price || 0), Number(p.stock || 0)]
+    }));
+
+    await client.batch([deleteStmt, ...insertStmts], 'write');
+    return true;
+  } catch (err) {
+    console.error('Error saving products to Turso:', err);
+    return false;
+  }
+};
+
+// 4. Services CRUD (Normalized Relational Columns with Full Sync Deletion)
 export const fetchServicesFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
     const res = await client.execute('SELECT id, name, category, stage, price, estimatedDuration, description FROM services ORDER BY stage ASC, price ASC;');
-    if (res.rows.length > 0) {
-      return res.rows.map(row => ({
-        id: String(row.id),
-        name: String(row.name || ''),
-        category: String(row.category || ''),
-        stage: Number(row.stage || 1),
-        price: Number(row.price || 0),
-        estimatedDuration: String(row.estimatedDuration || ''),
-        description: String(row.description || '')
-      }));
-    }
+    return res.rows.map(row => ({
+      id: String(row.id),
+      name: String(row.name || ''),
+      category: String(row.category || ''),
+      stage: Number(row.stage || 1),
+      price: Number(row.price || 0),
+      estimatedDuration: String(row.estimatedDuration || ''),
+      description: String(row.description || '')
+    }));
   } catch (err) {
     console.error('Error fetching services from Turso:', err);
+    return null;
   }
-  return null;
 };
 
 export const saveServicesToTurso = async (services) => {
@@ -512,7 +615,16 @@ export const saveServicesToTurso = async (services) => {
   if (!client || !Array.isArray(services)) return false;
 
   try {
-    const stmts = services.map(s => ({
+    if (services.length === 0) {
+      await client.execute('DELETE FROM services;');
+      return true;
+    }
+    const placeholders = services.map(() => '?').join(',');
+    const deleteStmt = {
+      sql: `DELETE FROM services WHERE id NOT IN (${placeholders});`,
+      args: services.map(s => s.id)
+    };
+    const insertStmts = services.map(s => ({
       sql: `INSERT INTO services (id, name, category, stage, price, estimatedDuration, description)
             VALUES (?, ?, ?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
@@ -533,9 +645,7 @@ export const saveServicesToTurso = async (services) => {
       ]
     }));
 
-    if (stmts.length > 0) {
-      await client.batch(stmts, 'write');
-    }
+    await client.batch([deleteStmt, ...insertStmts], 'write');
     return true;
   } catch (err) {
     console.error('Error saving services to Turso:', err);
@@ -601,26 +711,24 @@ export const saveHolidaysToTurso = async (config) => {
   }
 };
 
-// 6. Testimonials CRUD (Normalized Relational Columns: id, name, rating, comment, createdAt)
+// 6. Testimonials CRUD (Normalized Relational Columns with Full Sync Deletion)
 export const fetchTestimonialsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
     const res = await client.execute('SELECT id, name, rating, comment, createdAt FROM testimonials ORDER BY createdAt DESC;');
-    if (res.rows.length > 0) {
-      return res.rows.map(row => ({
-        id: String(row.id),
-        name: String(row.name || ''),
-        rating: Number(row.rating || 5),
-        comment: String(row.comment || ''),
-        createdAt: String(row.createdAt || '')
-      }));
-    }
+    return res.rows.map(row => ({
+      id: String(row.id),
+      name: String(row.name || ''),
+      rating: Number(row.rating || 5),
+      comment: String(row.comment || ''),
+      createdAt: String(row.createdAt || '')
+    }));
   } catch (err) {
     console.error('Error fetching testimonials from Turso:', err);
+    return null;
   }
-  return null;
 };
 
 export const saveTestimonialsToTurso = async (testimonials) => {
@@ -628,7 +736,16 @@ export const saveTestimonialsToTurso = async (testimonials) => {
   if (!client || !Array.isArray(testimonials)) return false;
 
   try {
-    const stmts = testimonials.map(t => ({
+    if (testimonials.length === 0) {
+      await client.execute('DELETE FROM testimonials;');
+      return true;
+    }
+    const placeholders = testimonials.map(() => '?').join(',');
+    const deleteStmt = {
+      sql: `DELETE FROM testimonials WHERE id NOT IN (${placeholders});`,
+      args: testimonials.map(t => String(t.id))
+    };
+    const insertStmts = testimonials.map(t => ({
       sql: `INSERT INTO testimonials (id, name, rating, comment, createdAt)
             VALUES (?, ?, ?, ?, ?)
             ON CONFLICT(id) DO UPDATE SET
@@ -644,9 +761,7 @@ export const saveTestimonialsToTurso = async (testimonials) => {
       ]
     }));
 
-    if (stmts.length > 0) {
-      await client.batch(stmts, 'write');
-    }
+    await client.batch([deleteStmt, ...insertStmts], 'write');
     return true;
   } catch (err) {
     console.error('Error saving testimonials to Turso:', err);
@@ -670,20 +785,18 @@ export const deleteTestimonialFromTurso = async (id) => {
   }
 };
 
-// 7. Symptoms CRUD (Normalized Relational Columns: id, name, sortOrder)
+// 7. Symptoms CRUD (Normalized Relational Columns with Full Sync Deletion)
 export const fetchSymptomsFromTurso = async () => {
   const client = getTursoClient();
   if (!client) return null;
 
   try {
     const res = await client.execute('SELECT id, name FROM symptoms ORDER BY sortOrder ASC, rowid ASC;');
-    if (res.rows.length > 0) {
-      return res.rows.map(row => String(row.name));
-    }
+    return res.rows.map(row => String(row.name));
   } catch (err) {
     console.error('Error fetching symptoms from Turso:', err);
+    return null;
   }
-  return null;
 };
 
 export const saveSymptomsToTurso = async (symptoms) => {
@@ -692,6 +805,10 @@ export const saveSymptomsToTurso = async (symptoms) => {
 
   try {
     const deleteStmt = { sql: 'DELETE FROM symptoms;', args: [] };
+    if (symptoms.length === 0) {
+      await client.execute(deleteStmt);
+      return true;
+    }
     const insertStmts = symptoms.map((text, idx) => ({
       sql: 'INSERT INTO symptoms (id, name, sortOrder) VALUES (?, ?, ?);',
       args: [`sym_${idx + 1}`, text, idx + 1]

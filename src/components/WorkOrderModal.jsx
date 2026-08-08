@@ -14,7 +14,7 @@ export default function WorkOrderModal({ queue, services: propServices, onClose 
   const bankHolder = siteConfig.bankHolder || 'FSTWORKS GARAGE OFFICIAL';
 
   const getServiceItems = () => {
-    const allServices = (propServices && propServices.length > 0) ? propServices : INITIAL_SERVICES;
+    const allServices = propServices || [];
     return (queue.services || []).map(id => {
       const s = allServices.find(srv => srv.id === id);
       return s || { name: id, price: 0 };

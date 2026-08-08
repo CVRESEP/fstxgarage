@@ -3,24 +3,8 @@ import { getStoredServices } from '../utils/storage';
 import { ShieldCheck, Wrench, AlertTriangle, CheckCircle2, ChevronRight, Star, HelpCircle } from 'lucide-react';
 
 export default function ServicesSection({ onBookService, services: customServices, testimonials: customTestimonials }) {
-  const displayServices = (customServices && customServices.length > 0) ? customServices : getStoredServices();
-  const displayTestimonials = customTestimonials && customTestimonials.length > 0 ? customTestimonials : [
-    {
-      name: 'Bapak Aditia (Owner Fortuner VRZ)',
-      rating: 5,
-      comment: 'Masalah kaki-kaki di Fortuner saya yang bikin pusing akhirnya tuntas di FSTWORKS. Mekaniknya sangat paham detail, gratis inspeksi dulu baru tawarin estimasi yang jujur!'
-    },
-    {
-      name: 'Mas Farhan (Owner Civic Turbo)',
-      rating: 5,
-      comment: 'Fitur booking online sangat membantu! Datang sesuai jadwal ACC admin, mobil langsung ditangani tanpa nunggu berjam-jam. Recommended banget!'
-    },
-    {
-      name: 'Pak Rudi (Owner BMW E90)',
-      rating: 5,
-      comment: 'Spooring 3D laser-nya presisi banget, setir BMW saya yang tadinya miring sekarang lurus total. Hasil garansinya bikin tenang.'
-    }
-  ];
+  const displayServices = customServices || [];
+  const displayTestimonials = customTestimonials || [];
   const symptomGuide = [
     {
       symptom: 'Bunyi Geluduk Saat Menggeledak Di Jalan Lubang',
@@ -125,27 +109,31 @@ export default function ServicesSection({ onBookService, services: customService
         </div>
       </div>
 
-      {/* Section 3: Testimonials */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-        <span className="badge badge-success" style={{ marginBottom: '0.5rem' }}>ULASAN PELANGGAN</span>
-        <h3 style={{ fontSize: '1.8rem', color: '#f8fafc' }}>Apa Kata Pemilik Mobil Tentang FSTWORKS?</h3>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {displayTestimonials.map((testi, idx) => (
-          <div key={idx} className="glass-card" style={{ padding: '1.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.25rem', color: '#f59e0b', marginBottom: '0.75rem' }}>
-              {Array.from({ length: testi.rating }).map((_, r) => (
-                <Star key={r} size={16} fill="#f59e0b" />
-              ))}
-            </div>
-            <p style={{ fontSize: '0.9rem', color: '#cbd5e1', fontStyle: 'italic', marginBottom: '1rem', lineHeight: 1.5 }}>
-              "{testi.comment}"
-            </p>
-            <strong style={{ color: '#f8fafc', fontSize: '0.85rem' }}>{testi.name}</strong>
+      {/* Section 3: Testimonials (Only rendered if testimonials exist) */}
+      {displayTestimonials.length > 0 && (
+        <>
+          <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+            <span className="badge badge-success" style={{ marginBottom: '0.5rem' }}>ULASAN PELANGGAN</span>
+            <h3 style={{ fontSize: '1.8rem', color: '#f8fafc' }}>Apa Kata Pemilik Mobil Tentang FSTWORKS?</h3>
           </div>
-        ))}
-      </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
+            {displayTestimonials.map((testi, idx) => (
+              <div key={idx} className="glass-card" style={{ padding: '1.5rem' }}>
+                <div style={{ display: 'flex', gap: '0.25rem', color: '#f59e0b', marginBottom: '0.75rem' }}>
+                  {Array.from({ length: testi.rating || 5 }).map((_, r) => (
+                    <Star key={r} size={16} fill="#f59e0b" />
+                  ))}
+                </div>
+                <p style={{ fontSize: '0.9rem', color: '#cbd5e1', fontStyle: 'italic', marginBottom: '1rem', lineHeight: 1.5 }}>
+                  "{testi.comment}"
+                </p>
+                <strong style={{ color: '#f8fafc', fontSize: '0.85rem' }}>{testi.name}</strong>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
 
     </div>
   );

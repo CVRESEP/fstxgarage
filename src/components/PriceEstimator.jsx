@@ -3,12 +3,9 @@ import { getStoredServices } from '../utils/storage';
 import { Calculator, Check, Info, Wrench, Shield, ArrowRight, ShoppingCart, Trash2, Plus, Minus, Printer, Store, CreditCard, Tag } from 'lucide-react';
 
 export default function PriceEstimator({ onBookWithServices, services: customServices }) {
-  const servicesList = (customServices && customServices.length > 0) ? customServices : getStoredServices();
+  const servicesList = customServices || [];
   const [carType, setCarType] = useState('suv'); // citycar, sedan, suv, luxury
-  const [cartItems, setCartItems] = useState([
-    { id: 'free_inspection', qty: 1 },
-    { id: 'spooring_balancing_3d', qty: 1 }
-  ]);
+  const [cartItems, setCartItems] = useState([]);
   const [activeCategory, setActiveCategory] = useState('ALL');
 
   const carTypeMultiplier = {
